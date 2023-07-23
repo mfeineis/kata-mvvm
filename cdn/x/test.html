@@ -1,0 +1,160 @@
+<template>
+    <style>
+        form {
+            border: 1px solid black;
+        }
+        label {
+            display: block;
+        }
+        .hidden {
+            display: none;
+        }
+        .font-weight-bold {
+            font-weight: bold;
+        }
+        .italic {
+            font-style: italic;
+        }
+        .text-red {
+            color: red;
+        }
+        .small-caps {
+            font-variant: small-caps;
+        }
+    </style>
+    <form onsubmit.bind="submit(event, this)">
+        <div>
+            <b>
+                <slot></slot>
+                <span>(${someLabel})</span>
+            </b>
+        </div>
+        <label>
+            <input type="text" value.bind="input">
+        </label>
+        <div if.bind="visible">
+            if.bind=visible ${visible}
+        </div>
+        <div if.bind="!visible">
+            if.bind=!visible ${visible}
+        </div>
+        <div class.bind="classList">
+            [${classList}]
+        </div>
+        <div class.bind="classObj">
+            {${classObj}}
+        </div>
+        <div class.bind="classStr">
+            "${classStr}"
+        </div>
+        <div class.bind="classNone">
+            ${classNone}
+        </div>
+        <div>
+            <ul>
+                <li repeat.for="item of items">${item.id}: ${item.name}</li>
+            </ul>
+        </div>
+        <label>
+            <input type="checkbox" checked.bind="accept">
+            <span>Accept</span>
+        </label>
+        <fieldset>
+            <label>
+                <input type="radio" value="red" name="flavor" value.bind="flavor.name">
+                <span>red</span>
+            </label>
+            <label>
+                <input type="radio" value="green" name="flavor" value.bind="flavor.name">
+                <span>green</span>
+            </label>
+            <label>
+                <input type="radio" value="blue" name="flavor" value.bind="flavor.name">
+                <span>blue</span>
+            </label>
+        </fieldset>
+        <label>
+            <span>Static Items</span>
+            <select value.bind="selected">
+                <option value="">- Select an item -</option>
+                <option value="static_a">Static A</option>
+                <option value="static_b">Static B</option>
+            </select>
+            <span>${selected}</span>
+        </label>
+        <label>
+            <span>Dynamic Items</span>
+            <select value.bind="selected">
+                <option value="">- Select an item -</option>
+                <option repeat.for="item of items" value.bind="item.id">${item.name}</option>
+            </select>
+            <span>${selected}</span>
+        </label>
+        <div>
+            <button onclick.bind.prevent="browse(event)">Browse...</button>
+        </div>
+        <button type="submit">Send</button>
+        <!--
+        -->
+    </form>
+    <script type="module">
+
+        import { compose, attr } from "fx";
+
+        class ViewModel extends compose(attr("some-attribute")) {
+            _selectedItem = "nothing";
+            _accept;
+
+            items = [
+                { id: 'id-1', name: 'Item 1' },
+                { id: 'id-2', name: 'Item 2' },
+                { id: 'id-3', name: 'Item 3' },
+            ];
+
+            someLabel = "some-label-value";
+
+            visible = true;
+
+            classList = ["font-weight-bold", "italic", "text-red"];
+            classObj = { "small-caps": 1, "font-weight-bold": 1, "text-red": 0 };
+            classStr = "text-red";
+            classNone = null;
+
+            input = "Text Input";
+
+            flavor = { name: null };
+
+            constructor(...args) {
+                super(...args);
+                console.log("new ViewModel(", ...args, ")");
+            }
+
+            onUpdate() { }
+
+            get selected() {
+                console.log("vm.selected.get", this._selectedItem);
+                return this._selectedItem;
+            }
+            set selected(value) {
+                console.log("vm.selected.set", value, this._selectedItem);
+                this._selectedItem = value;
+            }
+            get accept() {
+                console.log("vm.accept.get", this._accept);
+                return this._accept;
+            }
+            set accept(value) {
+                console.log("vm.accept.set", value, this);
+                this._accept = value;
+            }
+
+            browse(event) {
+                console.log("vm.browser(", event, ")", this);
+            }
+            submit(event, node) {
+                console.log("vm.submit(", event, node, ")", this);
+            }
+        }
+
+    </script>
+</template>

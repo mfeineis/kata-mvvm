@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Kata MVVM</title>
+</head>
+<body>
+    <script>
+        function another() {
+            const snd = document.createElement("x-test");
+            snd.innerHTML = `Hello, Dynamic!`;
+            document.body.appendChild(snd);
+        }
+    </script>
+    <button onclick="another()">Give me another!</button>
+    <x-test>
+        Hello, Static!
+    </x-test>
+    <y-will-be-ignored>
+        I will be ignored
+    </y-will-be-ignored>
+</body>
+</html>
