@@ -3,6 +3,21 @@
 <head>
     <meta charset="utf-8">
     <title>Kata MVVM</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "fx": "./cdn/fx.js"
+            }
+        }
+    </script>
+    <script type="module">
+        import { config, compose } from "fx";
+        config({
+            shouldHandleElement(tagName) {
+                return /^x-/i.test(tagName);
+            },
+        });
+    </script>
 </head>
 <body>
     <script>
