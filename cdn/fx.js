@@ -79,13 +79,24 @@ async function requireElement(rawElementName) {
     }
 }
 
-document.addEventListener("DOMNodeInserted", ev => {
-    console.log("DOMNodeInserted", ev);
-    maybeRequestElement(ev.target);
-    // if (ev.target.tagName.toLowerCase() === "script" && state.scope.defining) {
-    //     const node = ev.target;
-    //     console.log("  defining...", node);
-    // }
+// document.addEventListener("DOMNodeInserted", ev => {
+//     console.log("DOMNodeInserted", ev);
+//     maybeRequestElement(ev.target);
+//     // if (ev.target.tagName.toLowerCase() === "script" && state.scope.defining) {
+//     //     const node = ev.target;
+//     //     console.log("  defining...", node);
+//     // }
+// });
+new MutationObserver((records, observer) => {
+    // console.log("MutationObserver.callback", records, observer);
+    for (const { addedNodes } of records) {
+        for (const node of addedNodes) {
+            maybeRequestElement(node);
+        }
+    }
+}).observe(document, {
+    childList: true,
+    subtree: true,
 });
 
 function maybeRequestElement(node) {
@@ -140,7 +151,7 @@ function parseElementDocument(doc, tagName) {
         }
         if (isScript) {
             // FIXME: It'd be preferred not to have to inject code, maybe there is a way?
-            node.textContent += `;typeof ViewModel !== "undefined" && customElements.whenDefined("${tagName}").then(Ctor => Ctor.init(ViewModel));`
+            node.textContent += `;typeof Component !== "undefined" && customElements.whenDefined("${tagName}").then(Ctor => Ctor.init(Component));`
         }
         // console.log("  node", node, "toRemove", toRemove);
         node = node.nextSibling || node.firstChild;
@@ -179,12 +190,12 @@ function parseElementDocument(doc, tagName) {
     });
 
     const Element = class extends HTMLElement {
-        static ViewModel;
+        static Component;
 
-        static init(ViewModel) {
+        static init(Component) {
             // console.log(`<${tagName}>.init(`, ...arguments, ")");
             // console.log("  ", state.scope.ViewModel);
-            this.ViewModel = ViewModel;
+            this.Component = Component;
             seal();
         }
 
@@ -197,13 +208,15 @@ function parseElementDocument(doc, tagName) {
             console.log("  ", `<${tagName}>.connectedCallback`, ...args);
             // console.log("    ViewModel.name", Element.ViewModel.name)
 
-            const viewModel = new Element.ViewModel();
+            const vm = new Element.Component();
 
-            const desc = Object.getOwnPropertyDescriptors(viewModel);
+            const desc = Object.getOwnPropertyDescriptors(vm);
             console.log("viewModel.getOwnPropertyDescriptors", desc);
 
+            const proxy = createScope(vm);
+
             this.attachShadow({ mode: "open" });
-            const dom = bind(viewTemplate.content.cloneNode(true), viewModel);
+            const dom = bind(viewTemplate.content.cloneNode(true), proxy);
             this.shadowRoot.appendChild(dom);
         }
 
@@ -215,8 +228,44 @@ function parseElementDocument(doc, tagName) {
 }
 
 function createScope(parentScope) {
-    const scope = Object.create(parentScope);
-    scope.$parent = parentScope;
+    // const scope = Object.create(parentScope);
+    // scope.$parent = parentScope;
+    // return scope;
+    const watches = new Map();
+    function $watch(prop, fn) {
+        console.log($watch.name, '"', prop, '"', fn, this);
+        const w = watches.get(prop) ?? [];
+        w.push(fn);
+        watches.set(prop, w);
+    }
+
+    const scope = new Proxy(parentScope, {
+        get(target, prop, receiver) {
+            if (prop === "$watch") {
+                return $watch;
+            }
+            if (prop === "$parent") {
+                return parentScope;
+            }
+            const value = this[prop] ?? target[prop];
+            return value;
+        },
+        set(target, prop, value, receiver) {
+            this[prop] = value;
+            if (watches.has(prop)) {
+                for (const fn of watches.get(prop)) {
+                    fn();
+                }
+            }
+            return true;
+        }
+    });
+    // Object.defineProperty(scope, "$watch", {
+    //     configurable: false,
+    //     writable: false,
+    //     value: $watch,
+    // });
+    // scope.$parent = parentScope;
     return scope;
 }
 
@@ -245,10 +294,29 @@ function grabAndSet(scope, prop, value) {
 }
 
 function interpolate(cursor, scope) {
-    cursor.textContent = cursor.textContent.replace(/\${([^}]+)}/g, (_, prop) => {
-        // console.log("interpolate", _, prop, "in", scope);
-        return grab(scope, prop);
+    const tmpl = cursor.textContent;
+    const re = /\${([^}]+)}/g;
+    const props = [];
+    tmpl.replace(re, (_, prop) => {
+        props.push(prop);
     });
+
+    if (props.length === 0) {
+        return;
+    }
+
+    function fn() {
+        cursor.textContent = tmpl.replace(re, (_, prop) => {
+            // console.log("interpolate", _, prop, "in", scope);
+            return grab(scope, prop);
+        });
+    }
+
+    for (const prop of props.filter(p => !/\./.test(p))) {
+        scope.$watch(prop, fn);
+    }
+
+    fn();
 }
 
 function bind(tmpl, vm) {
@@ -463,7 +531,40 @@ function bind(tmpl, vm) {
                                     }
                                     break;
                                 }
-                                throw new Error(`Binding for "${what}" not supported`);
+                                if (what === "innerhtml") {
+                                    const prop = what;
+                                    const scope = scopes.at(-1);
+                                    const it = grab(scope, val);
+                                    cursor.innerHTML = it;
+                                    break;
+                                }
+                                // if (Object.hasOwn(cursor, what)) {
+                                //     const prop = what;
+                                //     const scope = scopes.at(-1);
+                                //     const it = grab(scope, val);
+                                //     cursor[what] = it;
+                                //     break;
+                                // }
+                                // if (cursor.getAttribute(what)) {
+                                //     const prop = what;
+                                //     const scope = scopes.at(-1);
+                                //     const it = grab(scope, val);
+                                //     cursor.setAttribute(what, it);
+                                //     break;
+                                // }
+                                // throw new Error(`Binding for "${what}" not supported`);
+                                {
+                                    const prop = what;
+                                    const scope = scopes.at(-1);
+                                    const it = grab(scope, val);
+                                    cursor[what] = it;
+                                    if (what === "contenteditable") {
+                                        cursor.setAttribute(what, "plaintext-only");
+                                        // cursor.toggleAttribute(what);
+                                    } else {
+                                        cursor.setAttribute(what, String(it));
+                                    }
+                                }
                         }
                     }
                     parent.appendChild(cursor);

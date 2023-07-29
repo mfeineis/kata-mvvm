@@ -54,10 +54,13 @@
             <ul>
                 <li repeat.for="item of items">${item.id}: ${item.name}</li>
             </ul>
+            <div innerhtml.bind="markup">OVERRIDDEN CONTENT</div>
+            <div oninput.bind="contentChanged(event)" contenteditable.bind="isEditable">contenteditable</div>
         </div>
         <label>
             <input type="checkbox" checked.bind="accept">
             <span>Accept</span>
+            <span>${flavor.name}</span>
         </label>
         <fieldset>
             <label>
@@ -91,7 +94,7 @@
             <span>${selected}</span>
         </label>
         <div>
-            <button onclick.bind.prevent="browse(event)">Browse...</button>
+            <button onclick.bind.prevent.stop="browse(event)">Browse...</button>
         </div>
         <button type="submit">Send</button>
         <!--
@@ -99,11 +102,11 @@
     </form>
     <script type="module">
 
-        import { compose, attr } from "fx";
+        import { } from "fx";
 
-        class ViewModel extends compose(attr("some-attribute")) {
-            _selectedItem = "nothing";
-            _accept;
+        class Component {
+            selected = "nothing";
+            accept;
 
             items = [
                 { id: 'id-1', name: 'Item 1' },
@@ -122,32 +125,21 @@
 
             input = "Text Input";
 
+            markup = "<b>innerHTML</b>";
+
             flavor = { name: null };
 
+            isEditable = true;
+
             constructor(...args) {
-                super(...args);
-                console.log("new ViewModel(", ...args, ")");
+                console.log("new Component(", ...args, ")");
             }
 
             onUpdate() { }
 
-            get selected() {
-                console.log("vm.selected.get", this._selectedItem);
-                return this._selectedItem;
+            contentChanged(event) {
+                console.log("vm.contentChanged(", event, ")", this);
             }
-            set selected(value) {
-                console.log("vm.selected.set", value, this._selectedItem);
-                this._selectedItem = value;
-            }
-            get accept() {
-                console.log("vm.accept.get", this._accept);
-                return this._accept;
-            }
-            set accept(value) {
-                console.log("vm.accept.set", value, this);
-                this._accept = value;
-            }
-
             browse(event) {
                 console.log("vm.browser(", event, ")", this);
             }
