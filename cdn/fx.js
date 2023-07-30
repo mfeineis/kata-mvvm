@@ -241,12 +241,12 @@ function createScope(parentScope) {
     // const scope = Object.create(parentScope);
     // scope.$parent = parentScope;
     // return scope;
-    const watches = new Map();
+    const watchers = new Map();
     function $watch(prop, fn) {
-        console.log($watch.name, '"', prop, '"', fn, this);
-        const w = watches.get(prop) ?? [];
+        console.log($watch.name, '"', prop, '"'); //, fn, this);
+        const w = watchers.get(prop) ?? [];
         w.push(fn);
-        watches.set(prop, w);
+        watchers.set(prop, w);
     }
 
     const scope = new Proxy(parentScope, {
@@ -262,20 +262,14 @@ function createScope(parentScope) {
         },
         set(target, prop, value, receiver) {
             this[prop] = value;
-            if (watches.has(prop)) {
-                for (const fn of watches.get(prop)) {
+            if (watchers.has(prop)) {
+                for (const fn of watchers.get(prop)) {
                     fn();
                 }
             }
             return true;
         }
     });
-    // Object.defineProperty(scope, "$watch", {
-    //     configurable: false,
-    //     writable: false,
-    //     value: $watch,
-    // });
-    // scope.$parent = parentScope;
     return scope;
 }
 
