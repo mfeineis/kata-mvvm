@@ -48,6 +48,206 @@ const state = {
             },
         },
     ],
+    bindings: [
+        {
+            binding: function ifBinding(cursor, scope, val, what, action, mods) {
+                if (what === "if" && action === "bind") {
+                    // const prop = what;
+                    console.log("        binding: if[", what, "]", "=>", val);
+                    // const scope = scopes.at(-1);
+                    if (grab(scope, val)) {
+                        cursor.classList.remove("hidden");
+                    } else {
+                        cursor.classList.add("hidden");
+                    }
+                    return true;
+                }
+                return false;
+            }
+        },
+        {
+            binding: function eventBinding(cursor, scope, val, what, action, mods) {
+                if (/^on/.test(what) && action === "bind") {
+                    const evt = what;
+                    // const scope = scopes.at(-1);
+                    let fn;
+                    let argNames;
+                    val.replace(/^([^)]+)\w*\(([^)]+)\)\w*$/, (_, n, a = "") => {
+                        fn = n;
+                        argNames = a.split(",").map(it => it.trim());
+                    });
+                    console.log("        binding: (event)", evt, "=>", fn, "(", ...argNames, ")");
+                    cursor.addEventListener(evt.slice(2), function (ev) {
+                        if (mods.has("prevent")) {
+                            ev.preventDefault();
+                        }
+                        if (mods.has("stop")) {
+                            ev.stopPropagation();
+                        }
+                        const args = argNames.map(a => {
+                            if (a === "event") {
+                                return ev;
+                            }
+                            if (a === "this") {
+                                return this;
+                            }
+                            return scope[a];
+                        });
+                        scope[fn].apply(scope, args);
+                    });
+                    return true;
+                }
+                return false;
+            }
+        },
+        {
+            binding: function checkboxBinding(cursor, scope, val, what, action, mods) {
+                if (what === "checked" && action === "bind" && cursor.getAttribute("type") === "checkbox") {
+                    const prop = what;
+                    console.log("        binding: checkbox[", prop, "]", "=>", val);
+                    // const scope = scopes.at(-1);
+                    cursor.addEventListener("change", function (ev) {
+                        // console.log("        checkbox.onchange", ev, this)
+                        if (this.checked) {
+                            grabAndSet(scope, val, true);
+                            // scope[val] = true;
+                        } else {
+                            grabAndSet(scope, val, false);
+                            // scope[val] = false;
+                        }
+                    });
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
+            binding: function textInputBinding(cursor, scope, val, what, action, mods) {
+                if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "text") {
+                    const prop = what;
+                    console.log("        binding: text[", prop, "]", "=>", val);
+                    // const scope = scopes.at(-1);
+                    cursor.addEventListener("change", function () {
+                        grabAndSet(scope, val, this.value);
+                        // scope[val] = this.value;
+                    });
+                    cursor.value = grab(scope, val);
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
+            binding: function radioBinding(cursor, scope, val, what, action, mods) {
+                if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "radio") {
+                    const prop = what;
+                    console.log("        binding: radio[", prop, "]", "=>", val);
+                    // const scope = scopes.at(-1);
+                    cursor.addEventListener("change", function () {
+                        if (this.checked) {
+                            grabAndSet(scope, val, this.value);
+                            // scope[val] = this.value;
+                        }
+                    });
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
+            binding: function selectBinding(cursor, scope, val, what, action, mods) {
+                if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "select") {
+                    const prop = what;
+                    console.log("        binding: select[", prop, "]", "=>", val);
+                    // const scope = scopes.at(-1);
+                    cursor.addEventListener("change", function () {
+                        grabAndSet(scope, val, this.value);
+                        // scope[val] = this.value;
+                    });
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
+            binding: function optionBinding(cursor, scope, val, what, action, mods) {
+                if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "option") {
+                    const prop = what;
+                    console.log("        binding: option[", prop, "]", "=>", val);
+                    // const scope = src.__SCOPE__ || scopes.at(-1);
+                    cursor.value = grab(scope, val);
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
+            binding: function classBinding(cursor, scope, val, what, action, mods) {
+                if (what === "class" && action === "bind") {
+                    const prop = what;
+                    // const scope = scopes.at(-1);
+                    const it = grab(scope, val);
+                    console.log("        binding: class[", prop, "]", "=>", val, "->", it);
+                    if (typeof it === "string") {
+                        // console.log("          string", it)
+                        cursor.className = it;
+                    } else if (it && typeof it[Symbol.iterator] === "function") {
+                        // console.log("          iterable", it)
+                        cursor.className = [...Object.values(it)].join(" ");
+                    } else if (it && typeof it === "object") {
+                        // console.log("          object", it)
+                        cursor.className = Object.entries(it).filter(([_, v]) => {
+                            return v;
+                        }).map(([k]) => k).join(" ");
+                    } else {
+                        // console.log("          nothing", it)
+                        cursor.className = "";
+                    }
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
+            binding: function innerHtmlBinding(cursor, scope, val, what, action, mods) {
+                if (what === "innerhtml" && action === "bind") {
+                    const prop = what;
+                    // const scope = scopes.at(-1);
+                    const it = grab(scope, val);
+                    cursor.innerHTML = it;
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
+            binding: function contenteditableBinding(cursor, scope, val, what, action, mods) {
+                if (what === "contenteditable" && action === "bind") {
+                    const prop = what;
+                    // const scope = scopes.at(-1);
+                    const it = grab(scope, val);
+                    cursor[what] = it;
+                    cursor.setAttribute(what, "plaintext-only");
+                    // cursor.toggleAttribute(what);
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
+            binding: function fallbackPropertyBinding(cursor, scope, val, what, action, mods) {
+                if (action === "bind") {
+                    const prop = what;
+                    // const scope = scopes.at(-1);
+                    const it = grab(scope, val);
+                    cursor[what] = it;
+                    cursor.setAttribute(what, String(it));
+                    return true;
+                }
+                return false;
+            },
+        },
+    ],
 };
 
 // We want to be able to drop this module into a CDN and have it just work
@@ -324,6 +524,7 @@ function interpolate(cursor, scope) {
 }
 
 function bind(tmpl, vm) {
+    const bindings = state.bindings;
     const defaultModifiers = state.defaultModifiers;
 
     const view = document.createDocumentFragment();
@@ -346,6 +547,7 @@ function bind(tmpl, vm) {
     })()) {
         // console.log("..", parent, src)
         cursor = src.cloneNode();
+        // console.log("~~~>", src.nodeType, src.tagName)
         switch (src.nodeType) {
             case src.TEXT_NODE: {
                 parent.appendChild(cursor);
@@ -424,159 +626,13 @@ function bind(tmpl, vm) {
                         const val = cursor.getAttribute(attr);
                         // console.log("    binding", attr, "->", val);
                         // console.log("      evt", evt, mods);
-                        switch (action) {
-                            case "bind":
-                                if (what === "if") {
-                                    const prop = what;
-                                    console.log("        binding: if[", prop, "]", "=>", val);
-                                    const scope = scopes.at(-1);
-                                    if (grab(scope, val)) {
-                                        cursor.classList.remove("hidden");
-                                    } else {
-                                        cursor.classList.add("hidden");
-                                    }
-                                    break;
-                                }
-                                if (/^on/.test(what)) {
-                                    const evt = what;
-                                    const scope = scopes.at(-1);
-                                    let fn;
-                                    let argNames;
-                                    val.replace(/^([^)]+)\w*\(([^)]+)\)\w*$/, (_, n, a = "") => {
-                                        fn = n;
-                                        argNames = a.split(",").map(it => it.trim());
-                                    });
-                                    console.log("        binding: (event)", evt, "=>", fn, "(", ...argNames, ")");
-                                    cursor.addEventListener(evt.slice(2), function (ev) {
-                                        if (mods.has("prevent")) {
-                                            ev.preventDefault();
-                                        }
-                                        if (mods.has("stop")) {
-                                            ev.stopPropagation();
-                                        }
-                                        const args = argNames.map(a => {
-                                            if (a === "event") {
-                                                return ev;
-                                            }
-                                            if (a === "this") {
-                                                return this;
-                                            }
-                                            return scope[a];
-                                        });
-                                        scope[fn].apply(scope, args);
-                                    });
-                                    break;
-                                }
-                                if (what === "checked" && cursor.getAttribute("type") === "checkbox") {
-                                    const prop = what;
-                                    console.log("        binding: checkbox[", prop, "]", "=>", val);
-                                    const scope = scopes.at(-1);
-                                    cursor.addEventListener("change", function (ev) {
-                                        if (this.checked) {
-                                            grabAndSet(scope, val, true);
-                                            // scope[val] = true;
-                                        } else {
-                                            grabAndSet(scope, val, false);
-                                            // scope[val] = false;
-                                        }
-                                    });
-                                    break;
-                                }
-                                if (what === "value" && cursor.getAttribute("type") === "text") {
-                                    const prop = what;
-                                    console.log("        binding: text[", prop, "]", "=>", val);
-                                    const scope = scopes.at(-1);
-                                    cursor.addEventListener("change", function () {
-                                        grabAndSet(scope, val, this.value);
-                                        // scope[val] = this.value;
-                                    });
-                                    break;
-                                }
-                                if (what === "value" && cursor.getAttribute("type") === "radio") {
-                                    const prop = what;
-                                    console.log("        binding: radio[", prop, "]", "=>", val);
-                                    const scope = scopes.at(-1);
-                                    cursor.addEventListener("change", function () {
-                                        if (this.checked) {
-                                            grabAndSet(scope, val, this.value);
-                                            // scope[val] = this.value;
-                                        }
-                                    });
-                                    break;
-                                }
-                                if (what === "value" && cursor.tagName.toLowerCase() === "select") {
-                                    const prop = what;
-                                    console.log("        binding: select[", prop, "]", "=>", val);
-                                    const scope = scopes.at(-1);
-                                    cursor.addEventListener("change", function () {
-                                        grabAndSet(scope, val, this.value);
-                                        // scope[val] = this.value;
-                                    });
-                                    break;
-                                }
-                                if (what === "value" && cursor.tagName.toLowerCase() === "option") {
-                                    const prop = what;
-                                    console.log("        binding: option[", prop, "]", "=>", val);
-                                    const scope = src.__SCOPE__ || scopes.at(-1);
-                                    cursor.value = grab(scope, val);
-                                    break;
-                                }
-                                if (what === "class") {
-                                    const prop = what;
-                                    const scope = scopes.at(-1);
-                                    const it = grab(scope, val);
-                                    console.log("        binding: class[", prop, "]", "=>", val, "->", it);
-                                    if (typeof it === "string") {
-                                        // console.log("          string", it)
-                                        cursor.className = it;
-                                    } else if (it && typeof it[Symbol.iterator] === "function") {
-                                        // console.log("          iterable", it)
-                                        cursor.className = [...Object.values(it)].join(" ");
-                                    } else if (it && typeof it === "object") {
-                                        // console.log("          object", it)
-                                        cursor.className = Object.entries(it).filter(([_, v]) => {
-                                            return v;
-                                        }).map(([k]) => k).join(" ");
-                                    } else {
-                                        // console.log("          nothing", it)
-                                        cursor.className = "";
-                                    }
-                                    break;
-                                }
-                                if (what === "innerhtml") {
-                                    const prop = what;
-                                    const scope = scopes.at(-1);
-                                    const it = grab(scope, val);
-                                    cursor.innerHTML = it;
-                                    break;
-                                }
-                                // if (Object.hasOwn(cursor, what)) {
-                                //     const prop = what;
-                                //     const scope = scopes.at(-1);
-                                //     const it = grab(scope, val);
-                                //     cursor[what] = it;
-                                //     break;
-                                // }
-                                // if (cursor.getAttribute(what)) {
-                                //     const prop = what;
-                                //     const scope = scopes.at(-1);
-                                //     const it = grab(scope, val);
-                                //     cursor.setAttribute(what, it);
-                                //     break;
-                                // }
-                                // throw new Error(`Binding for "${what}" not supported`);
-                                {
-                                    const prop = what;
-                                    const scope = scopes.at(-1);
-                                    const it = grab(scope, val);
-                                    cursor[what] = it;
-                                    if (what === "contenteditable") {
-                                        cursor.setAttribute(what, "plaintext-only");
-                                        // cursor.toggleAttribute(what);
-                                    } else {
-                                        cursor.setAttribute(what, String(it));
-                                    }
-                                }
+
+                        let matched = false;
+                        let i = 0;
+                        while (!matched && i < bindings.length) {
+                            const { binding } = bindings[i];
+                            matched = binding(cursor, src.__SCOPE__ ?? scopes.at(-1), val, what, action, mods);
+                            i += 1;
                         }
                     }
                     parent.appendChild(cursor);
