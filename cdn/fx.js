@@ -38,6 +38,16 @@ const state = {
         defining: false,
         // ViewModel: null,
     },
+    defaultModifiers: [
+        {
+            defaults: function (cursor, what, action) {
+                if (what === "onsubmit" && action === "bind" && cursor.tagName.toLowerCase() === "form") {
+                    return ["prevent"];
+                }
+                return [];
+            },
+        },
+    ],
 };
 
 // We want to be able to drop this module into a CDN and have it just work
@@ -320,6 +330,8 @@ function interpolate(cursor, scope) {
 }
 
 function bind(tmpl, vm) {
+    const defaultModifiers = state.defaultModifiers;
+
     const view = document.createDocumentFragment();
     const scopes = [vm];
 
@@ -403,10 +415,16 @@ function bind(tmpl, vm) {
                         const [what, action, ...modList] = attr.split('.');
                         const mods = new Set(modList);
                         if (mods.size === 0) {
-                            switch (cursor.tagName.toLowerCase()) {
-                                case "form":
-                                    mods.add("prevent");
-                                    break;
+                            let matched = false;
+                            let i = 0;
+                            while (!matched && i < defaultModifiers.length) {
+                                const d = defaultModifiers[i];
+                                const defaultMods = d.defaults(cursor, what, action);
+                                matched = defaultMods.length > 0;
+                                for (const mod of defaultMods) {
+                                    mods.add(mod);
+                                }
+                                i += 1;
                             }
                         }
                         const val = cursor.getAttribute(attr);
