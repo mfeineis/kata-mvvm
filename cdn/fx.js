@@ -615,7 +615,7 @@ function bind(tmpl, vm) {
                         iterable = it;
                     });
                     // console.log("        binding: [repeat.for]", varName, "of", iterable);
-                    const scope = scopes.at(-1);
+                    const scope = src.parentNode.__SCOPE__ || scopes.at(-1);
                     // const fragment = document.createDocumentFragment();
                     for (const it of scope[iterable]) {
                         const itemScope = createScope(scope);
@@ -661,7 +661,7 @@ function bind(tmpl, vm) {
                         let i = 0;
                         while (!matched && i < bindings.length) {
                             const { binding } = bindings[i];
-                            matched = binding(cursor, src.__SCOPE__ ?? scopes.at(-1), val, what, action, mods);
+                            matched = binding(cursor, parent.__SCOPE__ ?? src.__SCOPE__ ?? src.parentNode.__SCOPE__ ?? scopes.at(-1), val, what, action, mods);
                             i += 1;
                         }
                     }

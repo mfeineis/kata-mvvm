@@ -52,7 +52,11 @@
         </div>
         <div>
             <ul>
-                <li repeat.for="item of items">${item.id}: ${item.name}</li>
+                <li repeat.for="item of items">
+                    ${item.id}: ${item.name}
+                    <button type="button" onclick.bind="removeItem(item)">-</button>
+                </li>
+                <li><button type="button" onclick.bind="addItem()">+</button></li>
             </ul>
             <div innerhtml.bind="markup">OVERRIDDEN CONTENT</div>
             <div oninput.bind="contentChanged(event)" contenteditable.bind="isEditable">contenteditable</div>
@@ -60,9 +64,10 @@
         <label>
             <input type="checkbox" checked.bind="accept">
             <span>Accept</span>
-            <span>${flavor.name}</span>
+            <span>${accept}</span>
         </label>
         <fieldset>
+            <div>${flavor.name}</div>
             <label>
                 <input type="radio" value="red" name="flavor" value.bind="flavor.name">
                 <span>red</span>
