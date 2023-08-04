@@ -72,7 +72,7 @@ const state = {
                     // const scope = scopes.at(-1);
                     let fn;
                     let argNames;
-                    val.replace(/^([^)]+)\w*\(([^)]+)\)\w*$/, (_, n, a = "") => {
+                    val.replace(/^([^)]+)\w*\(([^)]+)?\)\w*$/, (_, n, a = "") => {
                         fn = n;
                         argNames = a.split(",").map(it => it.trim());
                     });
@@ -91,7 +91,7 @@ const state = {
                             if (a === "this") {
                                 return this;
                             }
-                            return scope[a];
+                            return grab(scope, a);
                         });
                         scope[fn].apply(scope, args);
                     });
