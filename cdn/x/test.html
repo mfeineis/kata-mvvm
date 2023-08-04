@@ -137,6 +137,18 @@
 
             onUpdate() { }
 
+            addItem() {
+                console.log("vm.addItem()");
+                this.items.push({ id: `${Math.random()}`, name: 'New Item' });
+            }
+            removeItem(item) {
+                console.log("vm.removeItem(", item, ")");
+                const ix = this.items.findIndex(x => x === item);
+                if (ix >= 0) {
+                    this.items.splice(ix, 1);
+                }
+            }
+
             contentChanged(event) {
                 console.log("vm.contentChanged(", event, ")", this);
             }

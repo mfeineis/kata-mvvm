@@ -425,6 +425,10 @@ function parseElementDocument(doc, tagName) {
 
             const proxy = createScope(vm);
 
+            for (const [key, def] of Object.entries(desc)) {
+                maybePatch(key, def.value, proxy)
+            }
+
             this.attachShadow({ mode: "open" });
             const dom = bind(viewTemplate.content.cloneNode(true), proxy);
             this.shadowRoot.appendChild(dom);
@@ -435,6 +439,24 @@ function parseElementDocument(doc, tagName) {
         }
     };
     customElements.define(tagName, Element);
+}
+
+function maybePatch(key, value, scope) {
+    if (Array.isArray(value)) {
+        for (const method of ["fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"]) {
+            const nativeMethod = value[method];
+            // console.log("  patching", nativeMethod);
+            Object.defineProperty(value, method, {
+                enumerable: false,
+                value: function () {
+                    const val = nativeMethod.apply(this, arguments)
+                    scope.$emit("mutated", key);
+                    return val;
+                },
+            });
+        }
+    }
+    return value;
 }
 
 function createScope(parentScope) {
@@ -449,8 +471,20 @@ function createScope(parentScope) {
         watchers.set(prop, w);
     }
 
+    function $emit(what, prop) {
+        console.log($emit.name, what, '"', prop, '"');
+        if (watchers.has(prop)) {
+            for (const fn of watchers.get(prop)) {
+                fn();
+            }
+        }
+    }
+
     const scope = new Proxy(parentScope, {
         get(target, prop, receiver) {
+            if (prop === "$emit") {
+                return $emit;
+            }
             if (prop === "$watch") {
                 return $watch;
             }
@@ -461,12 +495,8 @@ function createScope(parentScope) {
             return value;
         },
         set(target, prop, value, receiver) {
-            this[prop] = value;
-            if (watchers.has(prop)) {
-                for (const fn of watchers.get(prop)) {
-                    fn();
-                }
-            }
+            this[prop] = maybePatch(prop, value, scope);
+            $emit("mutated", prop)
             return true;
         }
     });
