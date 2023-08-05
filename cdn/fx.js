@@ -664,8 +664,8 @@ function visitElementNode(parent, src, scope, enqueue) {
                 const itemScope = createScope(scope);
                 itemScope[varName] = it;
                 const node = src.cloneNode(true);
-                node.removeAttribute(attr);
                 node.__EXPANDO__ = expando;
+                node.removeAttribute(attr);
 
                 const tmpl = document.createDocumentFragment();
                 tmpl.appendChild(node);
@@ -677,16 +677,13 @@ function visitElementNode(parent, src, scope, enqueue) {
                 }
             }
         }
-        scope.$watch(iterable, () => {
-            console.log("<- $watch", iterable);
-            updateNode();
-        });
+        scope.$watch(iterable, updateNode);
         for (const it of scope[iterable]) {
             const itemScope = createScope(scope);
             itemScope[varName] = it;
             const node = src.cloneNode(true);
-            node.removeAttribute(attr);
             node.__EXPANDO__ = expando;
+            node.removeAttribute(attr);
 
             const tmpl = document.createDocumentFragment();
             tmpl.appendChild(node);
