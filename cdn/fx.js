@@ -78,6 +78,7 @@ const state = {
                     });
                     console.log("        binding: (event)", evt, "=>", fn, "(", ...argNames, ")");
                     cursor.addEventListener(evt.slice(2), function (ev) {
+                        // console.log(what, scope.item, ev, scope);
                         if (mods.has("prevent")) {
                             ev.preventDefault();
                         }
@@ -394,19 +395,16 @@ function parseElementDocument(doc, tagName) {
         }
     }
 
-    let seal;
-    const sealedPromise = new Promise(resolve => {
-        seal = resolve;
+    let provideComponent;
+    const componentProvided = new Promise(resolve => {
+        provideComponent = resolve;
     });
 
     const Element = class extends HTMLElement {
-        static Component;
-
         static init(Component) {
             // console.log(`<${tagName}>.init(`, ...arguments, ")");
             // console.log("  ", state.scope.ViewModel);
-            this.Component = Component;
-            seal();
+            provideComponent(Component);
         }
 
         constructor() {
@@ -414,23 +412,23 @@ function parseElementDocument(doc, tagName) {
         }
 
         async connectedCallback(...args) {
-            await sealedPromise;
+            const Component = await componentProvided;
             console.log("  ", `<${tagName}>.connectedCallback`, ...args);
             // console.log("    ViewModel.name", Element.ViewModel.name)
 
-            const vm = new Element.Component();
+            const vm = new Component();
 
             const desc = Object.getOwnPropertyDescriptors(vm);
             console.log("viewModel.getOwnPropertyDescriptors", desc);
 
-            const proxy = createScope(vm);
+            const scope = createScope(vm);
 
             for (const [key, def] of Object.entries(desc)) {
-                maybePatch(key, def.value, proxy)
+                maybePatch(key, def.value, scope);
             }
 
             this.attachShadow({ mode: "open" });
-            const dom = bind(viewTemplate.content.cloneNode(true), proxy);
+            const dom = bind(viewTemplate.content.cloneNode(true), scope);
             this.shadowRoot.appendChild(dom);
         }
 
@@ -441,6 +439,11 @@ function parseElementDocument(doc, tagName) {
     customElements.define(tagName, Element);
 }
 
+/**
+ * @param {string} key 
+ * @param {any} value 
+ * @param {any} scope 
+ */
 function maybePatch(key, value, scope) {
     if (Array.isArray(value)) {
         for (const method of ["fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"]) {
@@ -459,6 +462,7 @@ function maybePatch(key, value, scope) {
     return value;
 }
 
+/** @param {any} parentScope */
 function createScope(parentScope) {
     // const scope = Object.create(parentScope);
     // scope.$parent = parentScope;
@@ -503,6 +507,10 @@ function createScope(parentScope) {
     return scope;
 }
 
+/**
+ * @param {any} scope 
+ * @param {string} prop 
+ */
 function grab(scope, prop) {
     const invert = prop[0] === "!";
     const path = prop.replace(/^!/, "").split(".");
@@ -512,6 +520,12 @@ function grab(scope, prop) {
     }
     return invert ? !sub : sub;
 }
+
+/**
+ * @param {any} scope 
+ * @param {string} prop 
+ * @param {unknown} value 
+ */
 function grabAndSet(scope, prop, value) {
     const path = prop.split(".");
     if (path.length > 2) {
@@ -527,6 +541,58 @@ function grabAndSet(scope, prop, value) {
     }
 }
 
+function bind(tmpl, vm) {
+    const view = document.createDocumentFragment();
+    const scopes = [vm];
+
+    /** @type {Node} */
+    let src;
+    /** @type {Node} */
+    let parent;
+    const list = [...([...tmpl.childNodes].map(n => [view, n]))];
+    while ((() => {
+        const [it] = list.splice(0, 1);
+        if (!it) {
+            return null;
+        }
+        [parent, src] = it;
+        return true;
+    })()) {
+        const scope = parent.__SCOPE__ ?? src.__SCOPE__ ?? src.parentNode.__SCOPE__ ?? scopes.at(-1);
+
+        function enqueue(parent, node) {
+            list.push([parent, node])
+        }
+
+        switch (src.nodeType) {
+            case src.TEXT_NODE:
+                visitTextNode(parent, src, scope);
+                break;
+            case src.COMMENT_NODE:
+                break;
+            case src.ATTRIBUTE_NODE:
+                throw new Error(`nodeType ${src.nodeType} (ATTRIBUTE_NODE) unsupported`);
+            case src.CDATA_SECTION_NODE:
+                throw new Error(`nodeType ${src.nodeType} (CDATA_SECTION_NODE) unsupported`);
+            case src.DOCUMENT_FRAGMENT_NODE:
+                throw new Error(`nodeType ${src.nodeType} (DOCUMENT_FRAGMENT_NODE) unsupported`);
+            case src.DOCUMENT_NODE:
+                throw new Error(`nodeType ${src.nodeType} (DOCUMENT_NODE) unsupported`);
+            case src.ELEMENT_NODE:
+                visitElementNode(parent, src, scope, enqueue);
+                break;
+            default:
+                throw new Error(`nodeType ${src.nodeType} unknown`);
+        }
+    }
+
+    return view;
+}
+
+/**
+ * @param {Node} cursor 
+ * @param {any} scope 
+ */
 function interpolate(cursor, scope) {
     const tmpl = cursor.textContent;
     const re = /\${([^}]+)}/g;
@@ -553,133 +619,101 @@ function interpolate(cursor, scope) {
     fn();
 }
 
-function bind(tmpl, vm) {
+/**
+ * @param {Node} parent
+ * @param {Node} src
+ * @param {any} scope
+ */
+function visitTextNode(parent, src, scope) {
+    const cursor = src.cloneNode();
+    parent.appendChild(cursor);
+    interpolate(cursor, scope);
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {HTMLElement} src
+ * @param {any} scope
+ * @param {(parent: Node, src: Node) => void} enqueue
+ */
+function visitElementNode(parent, src, scope, enqueue) {
     const bindings = state.bindings;
     const defaultModifiers = state.defaultModifiers;
 
-    const view = document.createDocumentFragment();
-    const scopes = [vm];
+    const attrSet = new Set(src.getAttributeNames());
+    const attrs = [...attrSet];
+    console.log("  ~>", src);
+    let appendToParent = true;
 
-    /** @type {HTMLElement} */
-    let src;
-    /** @type {HTMLElement} */
-    let cursor;
-    /** @type {HTMLElement} */
-    let parent;
-    const list = [...([...tmpl.childNodes].map(n => [view, n]))];
-    while ((() => {
-        const [it] = list.splice(0, 1);
-        if (!it) {
-            return null;
+    if (attrSet.has("repeat.for")) {
+        const attr = "repeat.for";
+        const val = src.getAttribute(attr);
+        let varName;
+        let iterable;
+        val.replace(/^([^\s]+)\s+of\s+([^\s]+)$/, (_, v, it) => {
+            varName = v;
+            iterable = it;
+        });
+        // console.log("        binding: [repeat.for]", varName, "of", iterable);
+        // const fragment = document.createDocumentFragment();
+        // scope.$watch(iterable, () => {
+        //     console.log("<- $watch", iterable);
+        // });
+        for (const it of scope[iterable]) {
+            const itemScope = createScope(scope);
+            itemScope[varName] = it;
+            const node = src.cloneNode(true);
+            node.removeAttribute(attr);
+            // fragment.appendChild(node);
+            node.__SCOPE__ = itemScope;
+            // src.parentNode.appendChild(node);
+            // console.log("  node.__SCOPE__", node.__SCOPE__);
+            enqueue(parent, node);
         }
-        [parent, src] = it;
-        return true;
-    })()) {
-        // console.log("..", parent, src)
-        cursor = src.cloneNode();
-        // console.log("~~~>", src.nodeType, src.tagName)
-        switch (src.nodeType) {
-            case src.TEXT_NODE: {
-                parent.appendChild(cursor);
-                const scope = src.parentNode.__SCOPE__ || scopes.at(-1);
-                interpolate(cursor, scope);
-                break;
-            }
-            case src.COMMENT_NODE:
-                // parent.appendChild(cursor);
-                break;
-            case src.ATTRIBUTE_NODE:
-                break;
-            case src.CDATA_SECTION_NODE:
-                // parent.appendChild(cursor);
-                break;
-            case src.DOCUMENT_FRAGMENT_NODE:
-                // parent.appendChild(cursor);
-                break;
-            case src.DOCUMENT_NODE:
-                // parent.appendChild(cursor);
-                break;
-            case src.ELEMENT_NODE: {
-                const attrSet = new Set(src.getAttributeNames());
-                const attrs = [...attrSet];
-                console.log("  ~>", src);
-                let appendToParent = true;
-
-                if (attrSet.has("repeat.for")) {
-                    const attr = "repeat.for";
-                    const val = src.getAttribute(attr);
-                    let varName;
-                    let iterable;
-                    val.replace(/^([^\s]+)\s+of\s+([^\s]+)$/, (_, v, it) => {
-                        varName = v;
-                        iterable = it;
-                    });
-                    // console.log("        binding: [repeat.for]", varName, "of", iterable);
-                    const scope = src.parentNode.__SCOPE__ || scopes.at(-1);
-                    // const fragment = document.createDocumentFragment();
-                    for (const it of scope[iterable]) {
-                        const itemScope = createScope(scope);
-                        itemScope[varName] = it;
-                        const node = src.cloneNode(true);
-                        node.removeAttribute(attr);
-                        // fragment.appendChild(node);
-                        node.__SCOPE__ = itemScope;
-                        // src.parentNode.appendChild(node);
-                        // console.log("  node.__SCOPE__", node.__SCOPE__);
-                        list.push([parent, node]);
-                    }
-                    // src.parentNode.appendChild(fragment);
-                    // src.parentNode.removeChild(src);
-                    appendToParent = false;
-                }
-
-                if (appendToParent) {
-                    for (const attr of attrs) {
-                        if (!/\./.test(attr)) {
-                            continue;
-                        }
-                        const [what, action, ...modList] = attr.split('.');
-                        const mods = new Set(modList);
-                        if (mods.size === 0) {
-                            let matched = false;
-                            let i = 0;
-                            while (!matched && i < defaultModifiers.length) {
-                                const d = defaultModifiers[i];
-                                const defaultMods = d.defaults(cursor, what, action);
-                                matched = defaultMods.length > 0;
-                                for (const mod of defaultMods) {
-                                    mods.add(mod);
-                                }
-                                i += 1;
-                            }
-                        }
-                        const val = cursor.getAttribute(attr);
-                        // console.log("    binding", attr, "->", val);
-                        // console.log("      evt", evt, mods);
-
-                        let matched = false;
-                        let i = 0;
-                        while (!matched && i < bindings.length) {
-                            const { binding } = bindings[i];
-                            matched = binding(cursor, parent.__SCOPE__ ?? src.__SCOPE__ ?? src.parentNode.__SCOPE__ ?? scopes.at(-1), val, what, action, mods);
-                            i += 1;
-                        }
-                    }
-                    parent.appendChild(cursor);
-
-                    for (const child of src.childNodes) {
-                        list.push([cursor, child]);
-                    }
-                }
-
-                break;
-            }
-            default:
-                throw new Error(`nodeType ${node.nodeType} unknown`);
-        }
+        appendToParent = false;
     }
 
-    return view;
+    if (appendToParent) {
+        /** @type {Node} */
+        const cursor = src.cloneNode();
+
+        for (const attr of attrs) {
+            if (!/\./.test(attr)) {
+                continue;
+            }
+            const [what, action, ...modList] = attr.split('.');
+            const mods = new Set(modList);
+            if (mods.size === 0) {
+                let matched = false;
+                let i = 0;
+                while (!matched && i < defaultModifiers.length) {
+                    const d = defaultModifiers[i];
+                    const defaultMods = d.defaults(cursor, what, action);
+                    matched = defaultMods.length > 0;
+                    for (const mod of defaultMods) {
+                        mods.add(mod);
+                    }
+                    i += 1;
+                }
+            }
+            const val = cursor.getAttribute(attr);
+            // console.log("    binding", attr, "->", val);
+            // console.log("      evt", evt, mods);
+
+            let matched = false;
+            let i = 0;
+            while (!matched && i < bindings.length) {
+                const { binding } = bindings[i];
+                matched = binding(cursor, scope, val, what, action, mods);
+                i += 1;
+            }
+        }
+        parent.appendChild(cursor);
+
+        for (const child of src.childNodes) {
+            enqueue(cursor, child);
+        }
+    }
 }
 
 // const nativeCreateElement = document.createElement.bind(document);

@@ -94,7 +94,9 @@
             <span>Dynamic Items</span>
             <select value.bind="selected">
                 <option value="">- Select an item -</option>
-                <option repeat.for="item of items" value.bind="item.id">${item.name}</option>
+                <option repeat.for="item of items" value.bind="item.id">
+                    ${item.name}
+                </option>
             </select>
             <span>${selected}</span>
         </label>
