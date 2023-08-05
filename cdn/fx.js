@@ -36,7 +36,6 @@ const state = {
     },
     scope: {
         defining: false,
-        // ViewModel: null,
     },
     defaultModifiers: [
         {
@@ -54,7 +53,6 @@ const state = {
                 if (what === "if" && action === "bind") {
                     // const prop = what;
                     console.log("        binding: if[", what, "]", "=>", val);
-                    // const scope = scopes.at(-1);
                     if (grab(scope, val)) {
                         cursor.classList.remove("hidden");
                     } else {
@@ -69,7 +67,6 @@ const state = {
             binding: function eventBinding(cursor, scope, val, what, action, mods) {
                 if (/^on/.test(what) && action === "bind") {
                     const evt = what;
-                    // const scope = scopes.at(-1);
                     let fn;
                     let argNames;
                     val.replace(/^([^)]+)\w*\(([^)]+)?\)\w*$/, (_, n, a = "") => {
@@ -106,15 +103,12 @@ const state = {
                 if (what === "checked" && action === "bind" && cursor.getAttribute("type") === "checkbox") {
                     const prop = what;
                     console.log("        binding: checkbox[", prop, "]", "=>", val);
-                    // const scope = scopes.at(-1);
                     cursor.addEventListener("change", function (ev) {
                         // console.log("        checkbox.onchange", ev, this)
                         if (this.checked) {
                             grabAndSet(scope, val, true);
-                            // scope[val] = true;
                         } else {
                             grabAndSet(scope, val, false);
-                            // scope[val] = false;
                         }
                     });
                     return true;
@@ -127,10 +121,8 @@ const state = {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "text") {
                     const prop = what;
                     console.log("        binding: text[", prop, "]", "=>", val);
-                    // const scope = scopes.at(-1);
                     cursor.addEventListener("change", function () {
                         grabAndSet(scope, val, this.value);
-                        // scope[val] = this.value;
                     });
                     cursor.value = grab(scope, val);
                     return true;
@@ -143,11 +135,9 @@ const state = {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "radio") {
                     const prop = what;
                     console.log("        binding: radio[", prop, "]", "=>", val);
-                    // const scope = scopes.at(-1);
                     cursor.addEventListener("change", function () {
                         if (this.checked) {
                             grabAndSet(scope, val, this.value);
-                            // scope[val] = this.value;
                         }
                     });
                     return true;
@@ -160,10 +150,8 @@ const state = {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "select") {
                     const prop = what;
                     console.log("        binding: select[", prop, "]", "=>", val);
-                    // const scope = scopes.at(-1);
                     cursor.addEventListener("change", function () {
                         grabAndSet(scope, val, this.value);
-                        // scope[val] = this.value;
                     });
                     return true;
                 }
@@ -175,7 +163,6 @@ const state = {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "option") {
                     const prop = what;
                     console.log("        binding: option[", prop, "]", "=>", val);
-                    // const scope = src.__SCOPE__ || scopes.at(-1);
                     cursor.value = grab(scope, val);
                     return true;
                 }
@@ -186,7 +173,6 @@ const state = {
             binding: function classBinding(cursor, scope, val, what, action, mods) {
                 if (what === "class" && action === "bind") {
                     const prop = what;
-                    // const scope = scopes.at(-1);
                     const it = grab(scope, val);
                     console.log("        binding: class[", prop, "]", "=>", val, "->", it);
                     if (typeof it === "string") {
@@ -213,7 +199,6 @@ const state = {
             binding: function innerHtmlBinding(cursor, scope, val, what, action, mods) {
                 if (what === "innerhtml" && action === "bind") {
                     const prop = what;
-                    // const scope = scopes.at(-1);
                     const it = grab(scope, val);
                     cursor.innerHTML = it;
                     return true;
@@ -225,11 +210,9 @@ const state = {
             binding: function contenteditableBinding(cursor, scope, val, what, action, mods) {
                 if (what === "contenteditable" && action === "bind") {
                     const prop = what;
-                    // const scope = scopes.at(-1);
                     const it = grab(scope, val);
                     cursor[what] = it;
-                    cursor.setAttribute(what, "plaintext-only");
-                    // cursor.toggleAttribute(what);
+                    cursor.setAttribute(what, true);
                     return true;
                 }
                 return false;
@@ -239,7 +222,6 @@ const state = {
             binding: function fallbackPropertyBinding(cursor, scope, val, what, action, mods) {
                 if (action === "bind") {
                     const prop = what;
-                    // const scope = scopes.at(-1);
                     const it = grab(scope, val);
                     cursor[what] = it;
                     cursor.setAttribute(what, String(it));
@@ -657,7 +639,6 @@ function visitElementNode(parent, src, scope, enqueue) {
             iterable = it;
         });
         // console.log("        binding: [repeat.for]", varName, "of", iterable);
-        // const fragment = document.createDocumentFragment();
         function updateNode() {
             let posStart;
             let posEnd;
@@ -677,18 +658,13 @@ function visitElementNode(parent, src, scope, enqueue) {
             for (const child of toRemove) {
                 parent.removeChild(child);
             }
-            // console.log("start", posStart, "end", posEnd, "<-", parent);
             for (const it of scope[iterable]) {
                 const itemScope = createScope(scope);
                 itemScope[varName] = it;
                 const node = src.cloneNode(true);
                 node.removeAttribute(attr);
-                // fragment.appendChild(node);
-                // node.__SCOPE__ = itemScope;
                 node.__EXPANDO__ = expando;
-                // src.parentNode.appendChild(node);
-                // console.log("  node.__SCOPE__", node.__SCOPE__);
-                // enqueue(parent, node);
+
                 const tmpl = document.createDocumentFragment();
                 tmpl.appendChild(node);
                 const fragment = bind(tmpl, itemScope);
@@ -708,12 +684,8 @@ function visitElementNode(parent, src, scope, enqueue) {
             itemScope[varName] = it;
             const node = src.cloneNode(true);
             node.removeAttribute(attr);
-            // fragment.appendChild(node);
-            // node.__SCOPE__ = itemScope;
             node.__EXPANDO__ = expando;
-            // src.parentNode.appendChild(node);
-            // console.log("  node.__SCOPE__", node.__SCOPE__);
-            // enqueue(parent, node);
+
             const tmpl = document.createDocumentFragment();
             tmpl.appendChild(node);
             const fragment = bind(tmpl, itemScope);
@@ -766,51 +738,3 @@ function visitElementNode(parent, src, scope, enqueue) {
     }
 }
 
-// const nativeCreateElement = document.createElement.bind(document);
-// document.createElement = function customCreateElement(...args) {
-//     console.log("document.createElement", ...args);
-//     return nativeCreateElement(...args);
-// };
-
-// const nativeGet = customElements.get.bind(customElements);
-// const nativeWhenDefined = customElements.whenDefined.bind(customElements);
-// Object.defineProperties(customElements, {
-//     get: {
-//         value(...args) {
-//             console.log("customElements.get(", ...args, ")");
-//             return nativeGet(...args);
-//         },
-//     },
-//     whenDefined: {
-//         value(...args) {
-//             console.log("customElements.whenDefined(", ...args, ")");
-//             return nativeWhenDefined(...args);
-//         }
-//     }
-// });
-
-// const observer = new MutationObserver((...args) => {
-//     console.log("MutationObserver.callback", ...args);
-// });
-// observer.observe(ev.target.body, {
-//     attributes: false,
-//     childList: true,
-//     subtree: true,
-// });
-
-// function LegacyElement() {
-//     const that = Reflect.construct(HTMLElement, [], this.constructor);
-//     // const proxy = new Proxy(that, {
-//     // });
-//     // return proxy;
-//     return that;
-// }
-// LegacyElement.prototype = Object.create(HTMLElement.prototype);
-// LegacyElement.prototype.constructor = LegacyElement;
-// LegacyElement.prototype.connectedCallback = function () {
-//     this.appendChild(document.createTextNode("A little rusty!"));
-// };
-// Object.setPrototypeOf(LegacyElement, HTMLElement);
-
-// // customElements.define(tagName, LegacyElement);
-// // customElements.define("legacy-element", LegacyElement);
