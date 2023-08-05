@@ -542,14 +542,14 @@ function grabAndSet(scope, prop, value) {
 }
 
 function bind(tmpl, vm) {
-    const view = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment();
     const scopes = [vm];
 
     /** @type {Node} */
     let src;
     /** @type {Node} */
     let parent;
-    const list = [...([...tmpl.childNodes].map(n => [view, n]))];
+    const list = [...([...tmpl.childNodes].map(n => [fragment, n]))];
     while ((() => {
         const [it] = list.splice(0, 1);
         if (!it) {
@@ -586,7 +586,7 @@ function bind(tmpl, vm) {
         }
     }
 
-    return view;
+    return fragment;
 }
 
 /**
@@ -626,6 +626,7 @@ function interpolate(cursor, scope) {
  */
 function visitTextNode(parent, src, scope) {
     const cursor = src.cloneNode();
+    cursor.__EXPANDO__ = src.__EXPANDO__;
     parent.appendChild(cursor);
     interpolate(cursor, scope);
 }
@@ -648,6 +649,7 @@ function visitElementNode(parent, src, scope, enqueue) {
     if (attrSet.has("repeat.for")) {
         const attr = "repeat.for";
         const val = src.getAttribute(attr);
+        const expando = `repeat.for(${Math.random()})`;
         let varName;
         let iterable;
         val.replace(/^([^\s]+)\s+of\s+([^\s]+)$/, (_, v, it) => {
@@ -656,19 +658,66 @@ function visitElementNode(parent, src, scope, enqueue) {
         });
         // console.log("        binding: [repeat.for]", varName, "of", iterable);
         // const fragment = document.createDocumentFragment();
-        // scope.$watch(iterable, () => {
-        //     console.log("<- $watch", iterable);
-        // });
+        function updateNode() {
+            let posStart;
+            let posEnd;
+            let last;
+            const toRemove = [];
+            for (const child of parent.childNodes) {
+                if (child.__EXPANDO__ === expando) {
+                    if (!posStart) {
+                        posStart = last;
+                    }
+                    toRemove.push(child);
+                } else if (posStart && !posEnd) {
+                    posEnd = child;
+                }
+                last = child;
+            }
+            for (const child of toRemove) {
+                parent.removeChild(child);
+            }
+            // console.log("start", posStart, "end", posEnd, "<-", parent);
+            for (const it of scope[iterable]) {
+                const itemScope = createScope(scope);
+                itemScope[varName] = it;
+                const node = src.cloneNode(true);
+                node.removeAttribute(attr);
+                // fragment.appendChild(node);
+                // node.__SCOPE__ = itemScope;
+                node.__EXPANDO__ = expando;
+                // src.parentNode.appendChild(node);
+                // console.log("  node.__SCOPE__", node.__SCOPE__);
+                // enqueue(parent, node);
+                const tmpl = document.createDocumentFragment();
+                tmpl.appendChild(node);
+                const fragment = bind(tmpl, itemScope);
+                if (posEnd) {
+                    parent.insertBefore(fragment, posEnd);
+                } else {
+                    parent.appendChild(fragment);
+                }
+            }
+        }
+        scope.$watch(iterable, () => {
+            console.log("<- $watch", iterable);
+            updateNode();
+        });
         for (const it of scope[iterable]) {
             const itemScope = createScope(scope);
             itemScope[varName] = it;
             const node = src.cloneNode(true);
             node.removeAttribute(attr);
             // fragment.appendChild(node);
-            node.__SCOPE__ = itemScope;
+            // node.__SCOPE__ = itemScope;
+            node.__EXPANDO__ = expando;
             // src.parentNode.appendChild(node);
             // console.log("  node.__SCOPE__", node.__SCOPE__);
-            enqueue(parent, node);
+            // enqueue(parent, node);
+            const tmpl = document.createDocumentFragment();
+            tmpl.appendChild(node);
+            const fragment = bind(tmpl, itemScope);
+            parent.appendChild(fragment);
         }
         appendToParent = false;
     }
@@ -676,6 +725,7 @@ function visitElementNode(parent, src, scope, enqueue) {
     if (appendToParent) {
         /** @type {Node} */
         const cursor = src.cloneNode();
+        cursor.__EXPANDO__ = src.__EXPANDO__;
 
         for (const attr of attrs) {
             if (!/\./.test(attr)) {
