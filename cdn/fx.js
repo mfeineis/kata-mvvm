@@ -8,6 +8,14 @@ export function config(config) {
     if (config.shouldHandleElement) {
         state.shouldHandleElement = config.shouldHandleElement;
     }
+    if (config.compositionRoot) {
+        config.compositionRoot({
+            singleton(token, factory) {
+                const instance = factory();
+                state.registrations.set(token, () => instance);
+            },
+        });
+    }
 }
 
 export function compose(cls) {
@@ -35,6 +43,7 @@ const state = {
     scope: {
         defining: false,
     },
+    registrations: new Map(),
     defaultModifiers: [
         {
             defaults: function (cursor, what, action) {
@@ -398,7 +407,18 @@ function parseElementDocument(doc, tagName) {
             // console.log("  ", `<${tagName}>.connectedCallback`, ...args);
             // console.log("    ViewModel.name", Element.ViewModel.name)
 
-            const vm = new Component();
+            const deps = [];
+            if (typeof Component.requires === "function") {
+                const map = {};
+                for (const [type, _] of state.registrations) {
+                    map[type.name] = type;
+                }
+                for (const dep of Component.requires(map)) {
+                    const factory = state.registrations.get(dep);
+                    deps.push(factory());
+                }
+            }
+            const vm = new Component(...deps);
 
             const desc = Object.getOwnPropertyDescriptors(vm);
             // console.log("viewModel.getOwnPropertyDescriptors", desc);

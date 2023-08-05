@@ -6,15 +6,21 @@
     <script type="importmap">
         {
             "imports": {
-                "fx": "./cdn/fx.js"
+                "fx": "./cdn/fx.js",
+                "site": "./cdn/site.js"
             }
         }
     </script>
     <script type="module">
         import { config } from "fx";
+        import { Store, LocalStorageStore } from "site";
+
         config({
             shouldHandleElement(tagName) {
                 return /^x-/i.test(tagName);
+            },
+            compositionRoot({ singleton }) {
+                singleton(Store, () => new LocalStorageStore());
             },
         });
     </script>

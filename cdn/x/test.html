@@ -146,9 +146,11 @@
 
             isEditable = true;
 
-            constructor(...args) {
+            static requires = ({ Store }) => [Store];
+
+            constructor(store) {
                 // super(...args);
-                // console.log("new Component(", ...args, ")");
+                console.log("new Component(", store, ")");
             }
 
             onUpdate() { }
