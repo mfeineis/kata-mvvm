@@ -10,14 +10,12 @@ export function config(config) {
     }
 }
 
-export function compose(...args) {
-    console.log("compose(", ...args, ")");
-    const ViewModel = class {
-    };
-    // state.scope.ViewModel = ViewModel;
-    // console.log("  defining", state.scope.defining);
-    return ViewModel;
+export function compose(cls) {
+    console.log("compose(", ...arguments, ")");
+    return cls;
 }
+
+export class Base { }
 
 export function attr(...args) {
     console.log("attr(", ...args, ")");
@@ -52,7 +50,7 @@ const state = {
             binding: function ifBinding(cursor, scope, val, what, action, mods) {
                 if (what === "if" && action === "bind") {
                     // const prop = what;
-                    console.log("        binding: if[", what, "]", "=>", val);
+                    // console.log("        binding: if[", what, "]", "=>", val);
                     if (grab(scope, val)) {
                         cursor.classList.remove("hidden");
                     } else {
@@ -73,7 +71,7 @@ const state = {
                         fn = n;
                         argNames = a.split(",").map(it => it.trim());
                     });
-                    console.log("        binding: (event)", evt, "=>", fn, "(", ...argNames, ")");
+                    // console.log("        binding: (event)", evt, "=>", fn, "(", ...argNames, ")");
                     cursor.addEventListener(evt.slice(2), function (ev) {
                         // console.log(what, scope.item, ev, scope);
                         if (mods.has("prevent")) {
@@ -102,7 +100,7 @@ const state = {
             binding: function checkboxBinding(cursor, scope, val, what, action, mods) {
                 if (what === "checked" && action === "bind" && cursor.getAttribute("type") === "checkbox") {
                     const prop = what;
-                    console.log("        binding: checkbox[", prop, "]", "=>", val);
+                    // console.log("        binding: checkbox[", prop, "]", "=>", val);
                     cursor.addEventListener("change", function (ev) {
                         // console.log("        checkbox.onchange", ev, this)
                         if (this.checked) {
@@ -134,7 +132,7 @@ const state = {
             binding: function radioBinding(cursor, scope, val, what, action, mods) {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "radio") {
                     const prop = what;
-                    console.log("        binding: radio[", prop, "]", "=>", val);
+                    // console.log("        binding: radio[", prop, "]", "=>", val);
                     cursor.addEventListener("change", function () {
                         if (this.checked) {
                             grabAndSet(scope, val, this.value);
@@ -149,7 +147,7 @@ const state = {
             binding: function selectBinding(cursor, scope, val, what, action, mods) {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "select") {
                     const prop = what;
-                    console.log("        binding: select[", prop, "]", "=>", val);
+                    // console.log("        binding: select[", prop, "]", "=>", val);
                     cursor.addEventListener("change", function () {
                         grabAndSet(scope, val, this.value);
                     });
@@ -162,7 +160,7 @@ const state = {
             binding: function optionBinding(cursor, scope, val, what, action, mods) {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "option") {
                     const prop = what;
-                    console.log("        binding: option[", prop, "]", "=>", val);
+                    // console.log("        binding: option[", prop, "]", "=>", val);
                     cursor.value = grab(scope, val);
                     return true;
                 }
@@ -174,7 +172,7 @@ const state = {
                 if (what === "class" && action === "bind") {
                     const prop = what;
                     const it = grab(scope, val);
-                    console.log("        binding: class[", prop, "]", "=>", val, "->", it);
+                    // console.log("        binding: class[", prop, "]", "=>", val, "->", it);
                     if (typeof it === "string") {
                         // console.log("          string", it)
                         cursor.className = it;
@@ -272,14 +270,6 @@ async function requireElement(rawElementName) {
     }
 }
 
-// document.addEventListener("DOMNodeInserted", ev => {
-//     console.log("DOMNodeInserted", ev);
-//     maybeRequestElement(ev.target);
-//     // if (ev.target.tagName.toLowerCase() === "script" && state.scope.defining) {
-//     //     const node = ev.target;
-//     //     console.log("  defining...", node);
-//     // }
-// });
 new MutationObserver((records, observer) => {
     // console.log("MutationObserver.callback", records, observer);
     for (const { addedNodes } of records) {
@@ -327,9 +317,9 @@ function parseElementDocument(doc, tagName) {
         return;
     }
 
-    console.log("parseElementDocument", doc);
+    // console.log("parseElementDocument", doc);
     const def = doc.querySelector("template");
-    console.log("  ", def);
+    // console.log("  ", def);
 
     const scriptsOnly = def.content.cloneNode(true);
     /** @type {Node} */
@@ -395,14 +385,13 @@ function parseElementDocument(doc, tagName) {
 
         async connectedCallback(...args) {
             const Component = await componentProvided;
-            console.log("  ", `<${tagName}>.connectedCallback`, ...args);
+            // console.log("  ", `<${tagName}>.connectedCallback`, ...args);
             // console.log("    ViewModel.name", Element.ViewModel.name)
 
             const vm = new Component();
 
             const desc = Object.getOwnPropertyDescriptors(vm);
-            console.log("viewModel.getOwnPropertyDescriptors", desc);
-
+            // console.log("viewModel.getOwnPropertyDescriptors", desc);
             const scope = createScope(vm);
 
             for (const [key, def] of Object.entries(desc)) {
@@ -446,12 +435,9 @@ function maybePatch(key, value, scope) {
 
 /** @param {any} parentScope */
 function createScope(parentScope) {
-    // const scope = Object.create(parentScope);
-    // scope.$parent = parentScope;
-    // return scope;
     const watchers = new Map();
     function $watch(prop, fn) {
-        console.log($watch.name, '"', prop, '"'); //, fn, this);
+        // console.log($watch.name, '"', prop, '"'); //, fn, this);
         const w = watchers.get(prop) ?? [];
         w.push(fn);
         watchers.set(prop, w);
@@ -627,7 +613,7 @@ function visitElementNode(parent, src, scope, enqueue) {
 
     const attrSet = new Set(src.getAttributeNames());
     const attrs = [...attrSet];
-    console.log("  ~>", src);
+    // console.log("  ~>", src);
     let appendToParent = true;
 
     if (attrSet.has("repeat.for")) {
