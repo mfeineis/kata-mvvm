@@ -120,7 +120,7 @@ const state = {
                 if (what === "value" && action === "bind" && (tagName === "input" && cursor.getAttribute("type") === "text" || tagName === "textarea")) {
                     const prop = what;
                     let reacting = false;
-                    console.log("        binding: <", tagName, "> text[", prop, "]", "=>", val);
+                    // console.log("        binding: <", tagName, "> text[", prop, "]", "=>", val);
                     cursor.addEventListener("input", function () {
                         if (reacting) {
                             return;
