@@ -6,6 +6,9 @@
         label {
             display: block;
         }
+        .block {
+            display: block;
+        }
         .hidden {
             display: none;
         }
@@ -31,6 +34,10 @@
         </div>
         <label>
             <input type="text" value.bind="input">
+            <input type="text" value.bind="input">
+            <span>${input}</span>
+            <textarea class="block" value.bind="input"></textarea>
+            <textarea class="block" readonly value.bind="input"></textarea>
         </label>
         <div if.bind="visible">
             if.bind=visible ${visible}

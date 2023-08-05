@@ -116,13 +116,23 @@ const state = {
         },
         {
             binding: function textInputBinding(cursor, scope, val, what, action, mods) {
-                if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "text") {
+                const tagName = cursor.tagName.toLowerCase();
+                if (what === "value" && action === "bind" && (tagName === "input" && cursor.getAttribute("type") === "text" || tagName === "textarea")) {
                     const prop = what;
-                    console.log("        binding: text[", prop, "]", "=>", val);
-                    cursor.addEventListener("change", function () {
+                    let reacting = false;
+                    console.log("        binding: <", tagName, "> text[", prop, "]", "=>", val);
+                    cursor.addEventListener("input", function () {
+                        if (reacting) {
+                            return;
+                        }
                         grabAndSet(scope, val, this.value);
                     });
                     cursor.value = grab(scope, val);
+                    scope.$watch(val, () => {
+                        reacting = true;
+                        cursor.value = grab(scope, val);
+                        reacting = false;
+                    });
                     return true;
                 }
                 return false;
