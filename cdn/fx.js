@@ -523,15 +523,23 @@ function grabAndSet(scope, prop, value) {
     }
 }
 
-function bind(tmpl, vm) {
+/**
+ * @param {DocumentFragment} tmpl 
+ * @param {any} scope
+ */
+function bind(tmpl, scope) {
     const fragment = document.createDocumentFragment();
-    const scopes = [vm];
 
     /** @type {Node} */
     let src;
     /** @type {Node} */
     let parent;
     const list = [...([...tmpl.childNodes].map(n => [fragment, n]))];
+
+    function enqueue(parent, node) {
+        list.push([parent, node])
+    }
+
     while ((() => {
         const [it] = list.splice(0, 1);
         if (!it) {
@@ -540,12 +548,6 @@ function bind(tmpl, vm) {
         [parent, src] = it;
         return true;
     })()) {
-        const scope = parent.__SCOPE__ ?? src.__SCOPE__ ?? src.parentNode.__SCOPE__ ?? scopes.at(-1);
-
-        function enqueue(parent, node) {
-            list.push([parent, node])
-        }
-
         switch (src.nodeType) {
             case src.TEXT_NODE:
                 visitTextNode(parent, src, scope);
