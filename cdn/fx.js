@@ -204,23 +204,27 @@ const state = {
             binding: function classBinding(cursor, scope, val, what, action, mods) {
                 if (what === "class" && action === "bind") {
                     const prop = what;
-                    const it = grab(scope, val);
-                    // console.log("        binding: class[", prop, "]", "=>", val, "->", it);
-                    if (typeof it === "string") {
-                        // console.log("          string", it)
-                        cursor.className = it;
-                    } else if (it && typeof it[Symbol.iterator] === "function") {
-                        // console.log("          iterable", it)
-                        cursor.className = [...Object.values(it)].join(" ");
-                    } else if (it && typeof it === "object") {
-                        // console.log("          object", it)
-                        cursor.className = Object.entries(it).filter(([_, v]) => {
-                            return v;
-                        }).map(([k]) => k).join(" ");
-                    } else {
-                        // console.log("          nothing", it)
-                        cursor.className = "";
-                    }
+                    const react = () => {
+                        const it = grab(scope, val);
+                        // console.log("        binding: class[", prop, "]", "=>", val, "->", it);
+                        if (typeof it === "string") {
+                            // console.log("          string", it)
+                            cursor.className = it;
+                        } else if (it && typeof it[Symbol.iterator] === "function") {
+                            // console.log("          iterable", it)
+                            cursor.className = [...Object.values(it)].join(" ");
+                        } else if (it && typeof it === "object") {
+                            // console.log("          object", it)
+                            cursor.className = Object.entries(it).filter(([_, v]) => {
+                                return v;
+                            }).map(([k]) => k).join(" ");
+                        } else {
+                            // console.log("          nothing", it)
+                            cursor.className = "";
+                        }
+                    };
+                    react();
+                    scope.$watch(val, react);
                     return true;
                 }
                 return false;

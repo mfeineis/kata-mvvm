@@ -115,9 +115,8 @@
         <div>
             <button onclick.bind.prevent.stop="browse(event)">Browse...</button>
             <button onclick.bind.prevent="toggleAccept()">Accept</button>
-            <button onclick.bind.prevent="toggleVisible()">
-                <span if.bind="visible">Visible</span>
-                <span if.bind="!visible"><span class="line-through">Visible</span></span>
+            <button class.bind="visibleButtonCss" onclick.bind.prevent="toggleVisible()">
+                Visible
             </button>
         </div>
         <button type="submit">Send</button>
@@ -157,6 +156,10 @@
 
             get computedValue() {
                 return `${this.input} - ${this.selected}`;
+            }
+
+            get visibleButtonCss() {
+                return [this.visible ? "" : "line-through"];
             }
 
             static requires = ({ Store }) => [Store];
