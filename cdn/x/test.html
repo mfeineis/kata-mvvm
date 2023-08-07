@@ -76,6 +76,7 @@
         </label>
         <fieldset>
             <div>${flavor.name}</div>
+            <div>${computedValue}</div>
             <label>
                 <input type="radio" value="red" name="flavor" value.bind="flavor.name">
                 <span>red</span>
@@ -145,6 +146,10 @@
             flavor = { name: null };
 
             isEditable = true;
+
+            get computedValue() {
+                return `${this.input} - ${this.selected}`;
+            }
 
             static requires = ({ Store }) => [Store];
 

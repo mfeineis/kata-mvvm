@@ -427,6 +427,16 @@ function parseElementDocument(doc, tagName) {
             for (const [key, def] of Object.entries(desc)) {
                 maybePatch(key, def.value, scope);
             }
+            const protoDesc = Object.getOwnPropertyDescriptors(Component.prototype);
+            for (const [key, def] of Object.entries(protoDesc)) {
+                if (def.get) {
+                    // Computed property
+                    const props = scope.$track(() => def.get.call(scope))
+                    for (const prop of props) {
+                        scope.$watch(prop, () => scope.$emit("computed", key));
+                    }
+                }
+            }
 
             this.attachShadow({ mode: "open" });
             const dom = bind(viewTemplate.content.cloneNode(true), scope);
@@ -470,6 +480,20 @@ function createScope(parentScope, decls) {
         watchers.set(prop, w);
     }
 
+    let tracker = null;
+    function $track(fn) {
+        const props = [];
+        tracker = function (prop) {
+            props.push(prop);
+        };
+
+        fn();
+
+        tracker = null;
+
+        return props;
+    }
+
     function $emit(what, prop) {
         console.log($emit.name, what, '"', prop, '"');
         if (watchers.has(prop)) {
@@ -485,6 +509,12 @@ function createScope(parentScope, decls) {
     };
     const scope = new Proxy(parentScope, {
         get(target, prop, receiver) {
+            if (tracker) {
+                tracker(prop);
+            }
+            if (prop === "$track") {
+                return $track;
+            }
             if (prop === "$emit") {
                 return $emit;
             }
