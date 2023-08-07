@@ -56,25 +56,6 @@ const state = {
     ],
     bindings: [
         {
-            binding: function ifBinding(cursor, scope, val, what, action, mods) {
-                if (what === "if" && action === "bind") {
-                    // const prop = what;
-                    // console.log("        binding: if[", what, "]", "=>", val);
-                    const react = () => {
-                        if (grab(scope, val)) {
-                            cursor.classList.remove("hidden");
-                        } else {
-                            cursor.classList.add("hidden");
-                        }
-                    };
-                    react();
-                    scope.$watch(val, react);
-                    return true;
-                }
-                return false;
-            }
-        },
-        {
             binding: function eventBinding(cursor, scope, val, what, action, mods) {
                 if (/^on/.test(what) && action === "bind") {
                     const evt = what;
