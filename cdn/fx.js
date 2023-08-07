@@ -231,6 +231,27 @@ const state = {
             },
         },
         {
+            binding: function cssBinding(cursor, scope, val, what, action, mods) {
+                if (what === "css" && action === "bind") {
+                    const prop = what;
+                    const classes = [...mods.keys()];
+                    const react = () => {
+                        const it = grab(scope, val);
+                        // console.log("        binding: css[", prop, "]", classes, "=>", val, "->", it);
+                        if (it) {
+                            cursor.classList.add(...classes);
+                        } else {
+                            cursor.classList.remove(...classes);
+                        }
+                    };
+                    react();
+                    scope.$watch(val, react);
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
             binding: function innerHtmlBinding(cursor, scope, val, what, action, mods) {
                 if (what === "innerhtml" && action === "bind") {
                     const prop = what;
