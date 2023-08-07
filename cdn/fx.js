@@ -464,7 +464,7 @@ function maybePatch(key, value, scope) {
 }
 
 /** @param {any} parentScope */
-function createScope(parentScope) {
+function createScope(parentScope, decls) {
     const watchers = new Map();
     function $watch(prop, fn) {
         // console.log($watch.name, '"', prop, '"'); //, fn, this);
@@ -482,6 +482,10 @@ function createScope(parentScope) {
         }
     }
 
+    const store = {
+        $parent: parentScope,
+        ...decls,
+    };
     const scope = new Proxy(parentScope, {
         get(target, prop, receiver) {
             if (prop === "$emit") {
@@ -493,11 +497,18 @@ function createScope(parentScope) {
             if (prop === "$parent") {
                 return parentScope;
             }
-            const value = this[prop] ?? target[prop];
+            const value = store[prop] ?? target[prop];
             return value;
         },
         set(target, prop, value, receiver) {
-            this[prop] = maybePatch(prop, value, scope);
+            let host = store;
+            while (!Object.hasOwn(host, prop)) {
+                if (!host.$parent) {
+                    break;
+                }
+                host = host.$parent;
+            }
+            host[prop] = maybePatch(prop, value, scope);
             $emit("mutated", prop)
             return true;
         }
@@ -677,8 +688,9 @@ function visitElementNode(parent, src, scope, enqueue) {
                 parent.removeChild(child);
             }
             for (const it of scope[iterable]) {
-                const itemScope = createScope(scope);
-                itemScope[varName] = it;
+                const itemScope = createScope(scope, {
+                    [varName]: it,
+                });
                 const node = src.cloneNode(true);
                 node.__EXPANDO__ = expando;
                 node.removeAttribute(attr);
@@ -695,8 +707,9 @@ function visitElementNode(parent, src, scope, enqueue) {
         }
         scope.$watch(iterable, updateNode);
         for (const it of scope[iterable]) {
-            const itemScope = createScope(scope);
-            itemScope[varName] = it;
+            const itemScope = createScope(scope, {
+                [varName]: it,
+            });
             const node = src.cloneNode(true);
             node.__EXPANDO__ = expando;
             node.removeAttribute(attr);
