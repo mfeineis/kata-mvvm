@@ -24,6 +24,9 @@
         .small-caps {
             font-variant: small-caps;
         }
+        .line-through {
+            text-decoration-line: line-through;
+        }
     </style>
     <form onsubmit.bind="submit(event, this)">
         <div>
@@ -112,6 +115,10 @@
         <div>
             <button onclick.bind.prevent.stop="browse(event)">Browse...</button>
             <button onclick.bind.prevent="toggleAccept()">Accept</button>
+            <button onclick.bind.prevent="toggleVisible()">
+                <span if.bind="visible">Visible</span>
+                <span if.bind="!visible"><span class="line-through">Visible</span></span>
+            </button>
         </div>
         <button type="submit">Send</button>
         <!--
@@ -178,6 +185,9 @@
             }
             toggleAccept() {
                 this.accept = !this.accept;
+            }
+            toggleVisible() {
+                this.visible = !this.visible;
             }
             submit(event, node) {
                 console.log("vm.submit(", event, node, ")", this);

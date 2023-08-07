@@ -60,11 +60,15 @@ const state = {
                 if (what === "if" && action === "bind") {
                     // const prop = what;
                     // console.log("        binding: if[", what, "]", "=>", val);
-                    if (grab(scope, val)) {
-                        cursor.classList.remove("hidden");
-                    } else {
-                        cursor.classList.add("hidden");
-                    }
+                    const react = () => {
+                        if (grab(scope, val)) {
+                            cursor.classList.remove("hidden");
+                        } else {
+                            cursor.classList.add("hidden");
+                        }
+                    };
+                    react();
+                    scope.$watch(val, react);
                     return true;
                 }
                 return false;
@@ -483,7 +487,8 @@ function maybePatch(key, value, scope) {
 /** @param {any} parentScope */
 function createScope(parentScope, decls) {
     const watchers = new Map();
-    function $watch(prop, fn) {
+    function $watch(fullProp, fn) {
+        const prop = fullProp.replace(/^!/, "");
         // console.log($watch.name, '"', prop, '"'); //, fn, this);
         const w = watchers.get(prop) ?? [];
         w.push(fn);
