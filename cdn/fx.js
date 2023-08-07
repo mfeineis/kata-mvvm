@@ -109,14 +109,24 @@ const state = {
             binding: function checkboxBinding(cursor, scope, val, what, action, mods) {
                 if (what === "checked" && action === "bind" && cursor.getAttribute("type") === "checkbox") {
                     const prop = what;
+                    let reacting = false;
                     // console.log("        binding: checkbox[", prop, "]", "=>", val);
                     cursor.addEventListener("change", function (ev) {
+                        if (reacting) {
+                            return;
+                        }
                         // console.log("        checkbox.onchange", ev, this)
                         if (this.checked) {
                             grabAndSet(scope, val, true);
                         } else {
                             grabAndSet(scope, val, false);
                         }
+                    });
+                    cursor.value = grab(scope, val);
+                    scope.$watch(val, () => {
+                        reacting = true;
+                        cursor.checked = grab(scope, val);
+                        reacting = false;
                     });
                     return true;
                 }
