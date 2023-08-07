@@ -446,18 +446,15 @@ function parseElementDocument(doc, tagName) {
  * @param {any} scope 
  */
 function maybePatch(key, value, scope) {
-    if (Array.isArray(value)) {
+    if (Array.isArray(value) && !/function\s+patched/.test(Object.toString.call(value.fill))) {
         for (const method of ["fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"]) {
-            const nativeMethod = value[method];
+            const nativeMethod = Array.prototype[method];
             // console.log("  patching", nativeMethod);
-            Object.defineProperty(value, method, {
-                enumerable: false,
-                value: function () {
-                    const val = nativeMethod.apply(this, arguments)
-                    scope.$emit("mutated", key);
-                    return val;
-                },
-            });
+            value[method] = function patched() {
+                const val = nativeMethod.apply(this, arguments)
+                scope.$emit("mutated", key);
+                return val;
+            };
         }
     }
     return value;

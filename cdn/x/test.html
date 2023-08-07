@@ -161,10 +161,7 @@
             }
             removeItem(item) {
                 console.log("vm.removeItem(", item, ")");
-                const ix = this.items.findIndex(x => x === item);
-                if (ix >= 0) {
-                    this.items.splice(ix, 1);
-                }
+                this.items = this.items.filter(x => x !== item);
             }
 
             contentChanged(event) {
