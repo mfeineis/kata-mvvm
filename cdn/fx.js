@@ -236,8 +236,12 @@ const state = {
             binding: function innerHtmlBinding(cursor, scope, val, what, action, mods) {
                 if (what === "innerhtml" && action === "bind") {
                     const prop = what;
+                    const react = () => {
                     const it = grab(scope, val);
                     cursor.innerHTML = it;
+                    };
+                    react();
+                    scope.$watch(val, react);
                     return true;
                 }
                 return false;
