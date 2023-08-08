@@ -415,11 +415,11 @@ function maybeRequestElement(node) {
 document.addEventListener("DOMContentLoaded", function (ev) {
     // console.log("DOMContentLoaded", ev.target, this);
     
-    let node = ev.target.body;
-    while (node) {
+    const treeWalker = document.createTreeWalker(document.body, Node.ELEMENT_NODE);
+    let node;
+    while (node = treeWalker.nextNode()) {
         // console.log("  ->", node);
         maybeRequestElement(node);
-        node = node.nextSibling || node.firstChild;
     }
 });
 
