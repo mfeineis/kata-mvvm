@@ -246,48 +246,42 @@ const state = {
             binding: function classBinding(cursor, scope, val, what, action, mods) {
                 if (what === "class" && action === "bind") {
                     const prop = what;
-                    const react = () => {
-                        const it = grab(scope, val);
-                        // console.log("        binding: class[", prop, "]", "=>", val, "->", it);
-                        if (typeof it === "string") {
-                            // console.log("          string", it)
-                            cursor.className = it;
-                        } else if (it && typeof it[Symbol.iterator] === "function") {
-                            // console.log("          iterable", it)
-                            cursor.className = [...Object.values(it)].join(" ");
-                        } else if (it && typeof it === "object") {
-                            // console.log("          object", it)
-                            cursor.className = Object.entries(it).filter(([_, v]) => {
-                                return v;
-                            }).map(([k]) => k).join(" ");
-                        } else {
-                            // console.log("          nothing", it)
-                            cursor.className = "";
-                        }
-                    };
-                    react();
-                    scope.$watch(val, react);
-                    return true;
-                }
-                return false;
-            },
-        },
-        {
-            binding: function cssBinding(cursor, scope, val, what, action, mods) {
-                if (what === "css" && action === "bind") {
-                    const prop = what;
-                    const classes = [...mods.keys()];
-                    const react = () => {
-                        const it = grab(scope, val);
-                        // console.log("        binding: css[", prop, "]", classes, "=>", val, "->", it);
-                        if (it) {
-                            cursor.classList.add(...classes);
-                        } else {
-                            cursor.classList.remove(...classes);
-                        }
-                    };
-                    react();
-                    scope.$watch(val, react);
+                    if (mods.size) {
+                        const classes = [...mods.keys()];
+                        const react = () => {
+                            const it = grab(scope, val);
+                            // console.log("        binding: class[", prop, "]", classes, "=>", val, "->", it);
+                            if (it) {
+                                cursor.classList.add(...classes);
+                            } else {
+                                cursor.classList.remove(...classes);
+                            }
+                        };
+                        react();
+                        scope.$watch(val, react);
+                    } else {
+                        const react = () => {
+                            const it = grab(scope, val);
+                            // console.log("        binding: class[", prop, "]", "=>", val, "->", it);
+                            if (typeof it === "string") {
+                                // console.log("          string", it)
+                                cursor.className = it;
+                            } else if (it && typeof it[Symbol.iterator] === "function") {
+                                // console.log("          iterable", it)
+                                cursor.className = [...Object.values(it)].join(" ");
+                            } else if (it && typeof it === "object") {
+                                // console.log("          object", it)
+                                cursor.className = Object.entries(it).filter(([_, v]) => {
+                                    return v;
+                                }).map(([k]) => k).join(" ");
+                            } else {
+                                // console.log("          nothing", it)
+                                cursor.className = "";
+                            }
+                        };
+                        react();
+                        scope.$watch(val, react);
+                    }
                     return true;
                 }
                 return false;
