@@ -175,7 +175,11 @@ const state = {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "option") {
                     const prop = what;
                     // console.log("        binding: option[", prop, "]", "=>", val);
+                    const react = () => {
                     cursor.value = grab(scope, val);
+                    };
+                    react();
+                    scope.$watch(val, react);
                     return true;
                 }
                 return false;
