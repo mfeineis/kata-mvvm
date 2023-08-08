@@ -259,9 +259,13 @@ const state = {
             binding: function fallbackPropertyBinding(cursor, scope, val, what, action, mods) {
                 if (action === "bind") {
                     const prop = what;
+                    const react = () => {
                     const it = grab(scope, val);
                     cursor[what] = it;
                     cursor.setAttribute(what, String(it));
+                    };
+                    react();
+                    scope.$watch(val, react);
                     return true;
                 }
                 return false;
