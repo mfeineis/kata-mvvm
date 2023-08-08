@@ -152,12 +152,14 @@ const state = {
                     const prop = what;
                     let reacting = false;
                     // console.log("        binding: <", tagName, "> text[", prop, "]", "=>", val);
+                    if (mods.has("two-way")) {
                     cursor.addEventListener("input", function () {
                         if (reacting) {
                             return;
                         }
                         grabAndSet(scope, val, this.value);
                     });
+                    }
                     cursor.value = grab(scope, val);
                     scope.$watch(val, () => {
                         reacting = true;

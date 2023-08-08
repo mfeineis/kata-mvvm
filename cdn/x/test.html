@@ -27,6 +27,9 @@
         .line-through {
             text-decoration-line: line-through;
         }
+        .opacity-0\.5 {
+            opacity: 0.5;
+        }
     </style>
     <form onsubmit.bind="submit(event, this)">
         <div>
@@ -37,7 +40,7 @@
         </div>
         <label>
             <input type="text" value.bind="input">
-            <input type="text" value.bind="input">
+            <input class="opacity-0.5" type="text" value.bind.one-way="input">
             <span>${input}</span>
             <textarea class="block" value.bind="input"></textarea>
             <textarea class="block" readonly value.bind="input"></textarea>
