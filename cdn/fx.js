@@ -173,11 +173,23 @@ const state = {
             binding: function radioBinding(cursor, scope, val, what, action, mods) {
                 if (what === "checked" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "radio") {
                     const prop = what;
+                    let reacting = false;
                     // console.log("        binding: radio[", prop, "]", "=>", val);
+                    if (mods.has("two-way")) {
                     cursor.addEventListener("change", function () {
+                            if (reacting) {
+                                return;
+                            }
                         if (this.checked) {
                             grabAndSet(scope, val, this.value);
                         }
+                    });
+                    }
+                    cursor.checked = grab(scope, val);
+                    scope.$watch(val, () => {
+                        reacting = true;
+                        cursor.checked = grab(scope, val);
+                        reacting = false;
                     });
                     return true;
                 }
