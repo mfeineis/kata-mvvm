@@ -53,6 +53,31 @@ const state = {
                 return [];
             },
         },
+        {
+            defaults: function (cursor, what, action) {
+                if (what === "checked" && action === "bind" && cursor.getAttribute("type") === "checkbox") {
+                    return ["one-way", "two-way"];
+                }
+                return [];
+            },
+        },
+        {
+            defaults: function (cursor, what, action) {
+                const tagName = cursor.tagName.toLowerCase();
+                if (what === "value" && action === "bind" && (tagName === "input" && cursor.getAttribute("type") === "text" || tagName === "textarea")) {
+                    return ["one-way", "two-way"];
+                }
+                return [];
+            },
+        },
+        {
+            defaults: function (cursor, what, action) {
+                if (what === "checked" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "radio") {
+                    return ["one-way", "two-way"];
+                }
+                return [];
+            },
+        },
     ],
     bindings: [
         {
