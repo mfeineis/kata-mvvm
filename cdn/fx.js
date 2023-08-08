@@ -78,6 +78,14 @@ const state = {
                 return [];
             },
         },
+        {
+            defaults: function (cursor, what, action) {
+                if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "select") {
+                    return ["one-way", "two-way"];
+                }
+                return [];
+            },
+        },
     ],
     bindings: [
         {
@@ -203,9 +211,17 @@ const state = {
                 if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "select") {
                     const prop = what;
                     // console.log("        binding: select[", prop, "]", "=>", val);
-                    cursor.addEventListener("change", function () {
-                        grabAndSet(scope, val, this.value);
-                    });
+                    if (mods.has("two-way")) {
+                        cursor.addEventListener("change", function () {
+                            grabAndSet(scope, val, this.value);
+                        });
+                    }
+                    const react = () => {
+                        cursor.value = grab(scope, val);
+                    };
+                    react();
+                    scope.$watch(val, react);
+
                     return true;
                 }
                 return false;
