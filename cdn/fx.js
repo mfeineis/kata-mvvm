@@ -247,9 +247,13 @@ const state = {
             binding: function contenteditableBinding(cursor, scope, val, what, action, mods) {
                 if (what === "contenteditable" && action === "bind") {
                     const prop = what;
+                    const react = () => {
                     const it = grab(scope, val);
                     cursor[what] = it;
                     cursor.setAttribute(what, true);
+                    };
+                    react();
+                    scope.$watch(val, react);
                     return true;
                 }
                 return false;
