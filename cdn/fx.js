@@ -121,6 +121,7 @@ const state = {
                     const prop = what;
                     let reacting = false;
                     // console.log("        binding: checkbox[", prop, "]", "=>", val);
+                    if (mods.has("two-way")) {
                     cursor.addEventListener("change", function (ev) {
                         if (reacting) {
                             return;
@@ -132,7 +133,8 @@ const state = {
                             grabAndSet(scope, val, false);
                         }
                     });
-                    cursor.value = grab(scope, val);
+                    }
+                    cursor.checked = grab(scope, val);
                     scope.$watch(val, () => {
                         reacting = true;
                         cursor.checked = grab(scope, val);
