@@ -122,17 +122,17 @@ const state = {
                     let reacting = false;
                     // console.log("        binding: checkbox[", prop, "]", "=>", val);
                     if (mods.has("two-way")) {
-                    cursor.addEventListener("change", function (ev) {
-                        if (reacting) {
-                            return;
-                        }
-                        // console.log("        checkbox.onchange", ev, this)
-                        if (this.checked) {
-                            grabAndSet(scope, val, true);
-                        } else {
-                            grabAndSet(scope, val, false);
-                        }
-                    });
+                        cursor.addEventListener("change", function (ev) {
+                            if (reacting) {
+                                return;
+                            }
+                            // console.log("        checkbox.onchange", ev, this)
+                            if (this.checked) {
+                                grabAndSet(scope, val, true);
+                            } else {
+                                grabAndSet(scope, val, false);
+                            }
+                        });
                     }
                     cursor.checked = grab(scope, val);
                     scope.$watch(val, () => {
@@ -153,12 +153,12 @@ const state = {
                     let reacting = false;
                     // console.log("        binding: <", tagName, "> text[", prop, "]", "=>", val);
                     if (mods.has("two-way")) {
-                    cursor.addEventListener("input", function () {
-                        if (reacting) {
-                            return;
-                        }
-                        grabAndSet(scope, val, this.value);
-                    });
+                        cursor.addEventListener("input", function () {
+                            if (reacting) {
+                                return;
+                            }
+                            grabAndSet(scope, val, this.value);
+                        });
                     }
                     cursor.value = grab(scope, val);
                     scope.$watch(val, () => {
@@ -178,14 +178,14 @@ const state = {
                     let reacting = false;
                     // console.log("        binding: radio[", prop, "]", "=>", val);
                     if (mods.has("two-way")) {
-                    cursor.addEventListener("change", function () {
+                        cursor.addEventListener("change", function () {
                             if (reacting) {
                                 return;
                             }
-                        if (this.checked) {
-                            grabAndSet(scope, val, this.value);
-                        }
-                    });
+                            if (this.checked) {
+                                grabAndSet(scope, val, this.value);
+                            }
+                        });
                     }
                     cursor.checked = grab(scope, val);
                     scope.$watch(val, () => {
@@ -217,7 +217,7 @@ const state = {
                     const prop = what;
                     // console.log("        binding: option[", prop, "]", "=>", val);
                     const react = () => {
-                    cursor.value = grab(scope, val);
+                        cursor.value = grab(scope, val);
                     };
                     react();
                     scope.$watch(val, react);
@@ -282,8 +282,8 @@ const state = {
                 if (what === "innerhtml" && action === "bind") {
                     const prop = what;
                     const react = () => {
-                    const it = grab(scope, val);
-                    cursor.innerHTML = it;
+                        const it = grab(scope, val);
+                        cursor.innerHTML = it;
                     };
                     react();
                     scope.$watch(val, react);
@@ -297,9 +297,9 @@ const state = {
                 if (what === "contenteditable" && action === "bind") {
                     const prop = what;
                     const react = () => {
-                    const it = grab(scope, val);
-                    cursor[what] = it;
-                    cursor.setAttribute(what, true);
+                        const it = grab(scope, val);
+                        cursor[what] = it;
+                        cursor.setAttribute(what, true);
                     };
                     react();
                     scope.$watch(val, react);
@@ -313,9 +313,9 @@ const state = {
                 if (action === "bind") {
                     const prop = what;
                     const react = () => {
-                    const it = grab(scope, val);
-                    cursor[what] = it;
-                    cursor.setAttribute(what, String(it));
+                        const it = grab(scope, val);
+                        cursor[what] = it;
+                        cursor.setAttribute(what, String(it));
                     };
                     react();
                     scope.$watch(val, react);
