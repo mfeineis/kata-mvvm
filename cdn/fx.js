@@ -144,7 +144,7 @@ const state = {
         },
         {
             binding: function radioBinding(cursor, scope, val, what, action, mods) {
-                if (what === "value" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "radio") {
+                if (what === "checked" && action === "bind" && cursor.tagName.toLowerCase() === "input" && cursor.getAttribute("type") === "radio") {
                     const prop = what;
                     // console.log("        binding: radio[", prop, "]", "=>", val);
                     cursor.addEventListener("change", function () {
