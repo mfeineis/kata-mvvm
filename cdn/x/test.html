@@ -38,6 +38,9 @@
                 <span>(${someLabel})</span>
             </b>
         </div>
+        <div>
+            <x-dummy prop.bind="input"></x-dummy>
+        </div>
         <label>
             <input type="text" value.bind="input">
             <input class="opacity-0.5" type="text" value.bind.one-way="input">

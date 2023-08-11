@@ -327,7 +327,7 @@ const state = {
                         cursor[what] = it;
                         cursor.setAttribute(what, String(it));
                     };
-                    react();
+                    setTimeout(react, 20);
                     scope.$watch(val, react);
                     return true;
                 }
@@ -512,6 +512,16 @@ function parseElementDocument(doc, tagName) {
             const scope = createScope(vm);
 
             for (const [key, def] of Object.entries(desc)) {
+                if (/^[a-z][a-z0-9]*$/.test(key)) {
+                    Object.defineProperty(this, key, {
+                        get() {
+                            return scope[key];
+                        },
+                        set(value) {
+                            scope[key] = value;
+                        },
+                    });
+                }
                 maybePatch(key, def.value, scope);
             }
             const protoDesc = Object.getOwnPropertyDescriptors(Component.prototype);
@@ -528,6 +538,12 @@ function parseElementDocument(doc, tagName) {
             this.attachShadow({ mode: "open" });
             const dom = bind(viewTemplate.content.cloneNode(true), scope);
             this.shadowRoot.appendChild(dom);
+
+            const walker = this.ownerDocument.createTreeWalker(this.shadowRoot);
+            let node;
+            while (node = walker.nextNode()) {
+                maybeRequestElement(node);
+            }
         }
 
         disconnectedCallback() {
