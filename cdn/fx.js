@@ -319,6 +319,29 @@ const state = {
             },
         },
         {
+            binding: function attributeBinding(cursor, scope, val, what, action, mods) {
+                if (what === "attr" && action === "bind") {
+                    const prop = what;
+                    const react = () => {
+                        const it = String(grab(scope, val));
+                        if (it) {
+                            for (const mod of mods) {
+                                cursor.setAttribute(mod, it);
+                            }
+                        } else {
+                            for (const mod of mods) {
+                                cursor.removeAttribute(mod);
+                            }
+                        }
+                    };
+                    react();
+                    scope.$watch(val, react);
+                    return true;
+                }
+                return false;
+            },
+        },
+        {
             binding: function fallbackPropertyBinding(cursor, scope, val, what, action, mods) {
                 if (action === "bind") {
                     const prop = what;
