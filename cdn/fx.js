@@ -117,7 +117,8 @@ const state = {
                             return grab(scope, a);
                         });
                         scope[fn].apply(scope, args);
-                    });
+                    }, { signal: scope.$disposeSignal });
+
                     return true;
                 }
                 return false;
@@ -140,7 +141,7 @@ const state = {
                             } else {
                                 grabAndSet(scope, val, false);
                             }
-                        });
+                        }, { signal: scope.$disposeSignal });
                     }
                     cursor.checked = grab(scope, val);
                     scope.$watch(val, () => {
@@ -166,7 +167,7 @@ const state = {
                                 return;
                             }
                             grabAndSet(scope, val, this.value);
-                        });
+                        }, { signal: scope.$disposeSignal });
                     }
                     cursor.value = grab(scope, val);
                     scope.$watch(val, () => {
@@ -193,7 +194,7 @@ const state = {
                             if (this.checked) {
                                 grabAndSet(scope, val, this.value);
                             }
-                        });
+                        }, { signal: scope.$disposeSignal });
                     }
                     cursor.checked = grab(scope, val);
                     scope.$watch(val, () => {
@@ -214,7 +215,7 @@ const state = {
                     if (mods.has("two-way")) {
                         cursor.addEventListener("change", function () {
                             grabAndSet(scope, val, this.value);
-                        });
+                        }, { signal: scope.$disposeSignal });
                     }
                     const react = () => {
                         cursor.value = grab(scope, val);
@@ -598,6 +599,7 @@ function maybePatch(key, value, scope) {
 
 /** @param {any} parentScope */
 function createScope(parentScope, decls) {
+    const abortCtrl = new AbortController();
     const watchers = new Map();
     function $watch(fullProp, fn) {
         const prop = fullProp.replace(/^!/, "");
@@ -622,12 +624,17 @@ function createScope(parentScope, decls) {
     }
 
     function $emit(what, prop) {
-        console.log($emit.name, what, '"', prop, '"');
+        console.log($emit.name, what, '"', prop, '"', watchers);
         if (watchers.has(prop)) {
             for (const fn of watchers.get(prop)) {
                 fn();
             }
         }
+    }
+
+    function $dispose() {
+        watchers.clear();
+        abortCtrl.abort();
     }
 
     const store = {
@@ -638,6 +645,12 @@ function createScope(parentScope, decls) {
         get(target, prop, receiver) {
             if (tracker) {
                 tracker(prop);
+            }
+            if (prop === "$disposeSignal") {
+                return abortCtrl.signal;
+            }
+            if (prop === "$dispose") {
+                return $dispose;
             }
             if (prop === "$track") {
                 return $track;
@@ -792,6 +805,8 @@ function interpolate(cursor, scope) {
 function visitTextNode(parent, src, scope) {
     const cursor = src.cloneNode();
     cursor.__EXPANDO__ = src.__EXPANDO__;
+    cursor.__SCOPE__ = src.__SCOPE__;
+    src.__SCOPE__ = null;
     parent.appendChild(cursor);
     interpolate(cursor, scope);
 }
@@ -823,6 +838,7 @@ function visitElementNode(parent, src, scope, enqueue) {
         });
         // console.log("        binding: [repeat.for]", varName, "of", iterable);
         function updateNode() {
+            // console.log("        updateNode");
             let posStart;
             let posEnd;
             let last;
@@ -839,6 +855,10 @@ function visitElementNode(parent, src, scope, enqueue) {
                 last = child;
             }
             for (const child of toRemove) {
+                if (child.__SCOPE__) {
+                    child.__SCOPE__.$dispose();
+                    child.__SCOPE__ = null;
+                }
                 parent.removeChild(child);
             }
             for (const it of scope[iterable]) {
@@ -847,6 +867,7 @@ function visitElementNode(parent, src, scope, enqueue) {
                 });
                 const node = src.cloneNode(true);
                 node.__EXPANDO__ = expando;
+                node.__SCOPE__ = itemScope;
                 node.removeAttribute(attr);
 
                 const tmpl = document.createDocumentFragment();
@@ -866,6 +887,7 @@ function visitElementNode(parent, src, scope, enqueue) {
             });
             const node = src.cloneNode(true);
             node.__EXPANDO__ = expando;
+            node.__SCOPE__ = itemScope;
             node.removeAttribute(attr);
 
             const tmpl = document.createDocumentFragment();
@@ -880,6 +902,8 @@ function visitElementNode(parent, src, scope, enqueue) {
         /** @type {Node} */
         const cursor = src.cloneNode();
         cursor.__EXPANDO__ = src.__EXPANDO__;
+        cursor.__SCOPE__ = src.__SCOPE__;
+        src.__SCOPE__ = null;
 
         for (const attr of attrs) {
             if (!/\./.test(attr)) {
